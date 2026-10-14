@@ -1,0 +1,33 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.iptv.lab"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.iptv.lab"
+        minSdk 23
+        targetSdk 34
+        versionCode 2
+        versionName "1.1.0"
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ["$buildDir/generated/webAssets"]
+        }
+    }
+}
+
+tasks.register("prepareWebAssets", Copy) {
+    from(rootProject.projectDir.parentFile) {
+        include "index.html", "style.css", "app.js", "app-config.js", "icon.png"
+    }
+    into("$buildDir/generated/webAssets/www")
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("prepareWebAssets")
+}

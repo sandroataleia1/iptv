@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Lab</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand-lockup">
+                <div class="brand-mark" aria-hidden="true">IPTV</div>
+                <div>
+                    <h1>IPTV <span>LAB</span></h1>
+                </div>
+            </div>
+            <div class="topbar-meta">
+                <div class="date-time">
+                    <span id="clock-label" class="clock-label">--:--</span>
+                    <span id="date-label" class="date-label">--</span>
+                </div>
+                <div class="account-chip">
+                    <span id="account-initial" class="account-initial" aria-hidden="true">D</span>
+                    <span id="account-name">Modo demo</span>
+                </div>
+            </div>
+        </header>
+
+        <section id="home-dashboard" class="home-dashboard" aria-label="Menu principal">
+            <div class="dashboard-grid">
+                <button class="dashboard-tile tile-live" type="button" data-action="channels" aria-label="Abrir Live TV">
+                    <span class="tile-icon tv-icon" aria-hidden="true">TV</span>
+                    <span class="tile-title">LIVE TV</span>
+                </button>
+                <div class="dashboard-right">
+                    <div class="dashboard-feature-row">
+                        <button class="dashboard-tile tile-movies" type="button" data-action="movies">
+                            <span class="tile-icon play-icon" aria-hidden="true">&#9654;</span>
+                            <span class="tile-title">FILMES</span>
+                        </button>
+                        <button class="dashboard-tile tile-series" type="button" data-action="series">
+                            <span class="tile-icon series-icon" aria-hidden="true">&#9638;</span>
+                            <span class="tile-title">SÉRIES</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <p id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite"></p>
+            <section id="device-status-card" class="device-status-card" aria-live="polite" aria-label="Status do aparelho e da assinatura">
+                <div class="device-status-copy">
+                    <p id="device-status-title" class="device-status-title">Verificando aplicativo...</p>
+                    <p id="device-status-message" class="device-status-message">Conectando ao painel.</p>
+                    <div class="device-status-meta">
+                        <span id="device-id-label" class="device-id-label">ID: gerando...</span>
+                        <span id="device-expiry-label" class="device-expiry-label"></span>
+                    </div>
+                    <p id="app-release-label" class="app-release-label" hidden></p>
+                </div>
+                <div class="device-status-actions">
+                    <button id="copy-device-id" class="device-action-button" type="button">Copiar ID</button>
+                    <button id="copy-pix-key" class="device-action-button" type="button" hidden>Copiar Pix</button>
+                    <a id="contact-support" class="device-action-button contact-button" href="#" target="_blank" rel="noopener noreferrer" hidden>Pagar / Falar no WhatsApp</a>
+                    <button id="update-app-button" class="device-action-button update-app-button" type="button" hidden>Atualizar app</button>
+                    <button id="retry-device-check" class="device-action-button" type="button" hidden>Tentar novamente</button>
+                </div>
+            </section>
+        </section>
+
+        <section id="channel-section" class="channel-section" aria-hidden="true" aria-labelledby="channels-title">
+            <div class="section-heading">
+                <div class="page-heading">
+                    <button id="back-home" class="back-icon-button" type="button" aria-label="Voltar" title="Voltar">
+                        <span aria-hidden="true">&#8592;</span>
+                    </button>
+                    <h2 id="channels-title">Live TV</h2>
+                </div>
+                <div class="channel-actions">
+                    <p id="connection-status" class="status" role="status">Preparando canais...</p>
+                </div>
+            </div>
+            <div class="live-browser">
+                <nav id="category-list" class="category-list" aria-label="Grupos de canais"></nav>
+                <section class="channel-pane" aria-labelledby="selected-group-title">
+                    <div class="channel-pane-heading">
+                        <h3 id="selected-group-title">Selecione um grupo</h3>
+                        <input id="catalog-search" class="catalog-search" type="search" placeholder="Buscar por nome" aria-label="Buscar canais, filmes e séries">
+                        <span id="channel-count" class="channel-count"></span>
+                    </div>
+                    <div id="channel-list" class="channel-grid" aria-live="polite"></div>
+                </section>
+                <aside class="preview-pane" aria-label="Prévia do canal">
+                    <button id="mini-player-button" class="mini-player-button" type="button" aria-label="Abrir canal em tela cheia">
+                        <span class="mini-player-stage">
+                            <video id="mini-video" class="mini-video" muted autoplay playsinline></video>
+                            <span id="mini-player-empty" class="mini-player-empty">Selecione um canal</span>
+                        </span>
+                        <span id="mini-now-playing" class="mini-now-playing">Nenhum canal selecionado</span>
+                    </button>
+                </aside>
+            </div>
+        </section>
+
+    </main>
+
+    <section id="vod-detail-screen" class="vod-detail-screen" aria-hidden="true" aria-labelledby="vod-detail-page-title">
+        <header class="vod-detail-header">
+            <button id="vod-detail-back" class="back-icon-button" type="button" aria-label="Voltar" title="Voltar">
+                <span aria-hidden="true">&#8592;</span>
+            </button>
+            <h2 id="vod-detail-page-title">Detalhes</h2>
+        </header>
+
+        <div id="movie-detail-view" class="movie-detail-view" hidden>
+            <div class="movie-detail-poster">
+                <span id="movie-poster-fallback" class="detail-poster-fallback"></span>
+                <img id="movie-detail-image" class="detail-poster-image" alt="">
+            </div>
+            <div class="movie-detail-info">
+                <h1 id="movie-detail-title"></h1>
+                <div id="movie-detail-rating" class="detail-rating"></div>
+                <p id="movie-detail-synopsis" class="detail-synopsis"></p>
+                <button id="movie-watch-button" class="settings-button primary-button watch-button" type="button">Assistir</button>
+            </div>
+        </div>
+
+        <div id="series-detail-view" class="series-detail-view" hidden>
+            <div class="series-detail-summary">
+                <div class="series-detail-poster">
+                    <span id="series-poster-fallback" class="detail-poster-fallback"></span>
+                    <img id="series-detail-image" class="detail-poster-image" alt="">
+                </div>
+                <div class="series-detail-info">
+                    <h2 id="series-detail-title"></h2>
+                    <div id="series-detail-rating" class="detail-rating"></div>
+                    <p id="series-detail-synopsis" class="detail-synopsis"></p>
+                    <button id="series-watch-button" class="settings-button primary-button watch-button" type="button">Assistir primeiro episódio</button>
+                </div>
+            </div>
+            <nav id="series-season-list" class="series-season-list" aria-label="Temporadas"></nav>
+            <div id="series-episode-list" class="series-episode-list" aria-label="Episódios"></div>
+        </div>
+    </section>
+
+    <section id="catalog-loading" class="catalog-loading-overlay" role="status" aria-live="polite" hidden>
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="catalog-loading-label">Carregando...</span>
+    </section>
+
+    <section id="player-screen" class="player-screen" aria-hidden="true">
+        <video id="video-player" class="video-player" controls autoplay playsinline></video>
+        <div class="player-header">
+            <button id="close-player" class="close-button" type="button" aria-label="Voltar" title="Voltar">
+                <span aria-hidden="true">&#8592;</span>
+            </button>
+            <p id="now-playing" class="now-playing">Reproduzindo</p>
+        </div>
+        <p id="player-message" class="player-message" aria-live="polite"></p>
+    </section>
+
+    <script src="app-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Android build output and local SDK settings
+android/.gradle/
+android/local.properties
+**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Private backend configuration and uploaded update files
+backend/config.php
+backend/storage/
+
+# Generated installer packages
+*.ipk
+
+# Operating system files
+Thumbs.db
+.DS_Store

@@ -1,0 +1,10 @@
+{
+  "id": "com.iptv.lab",
+  "version": "1.0.0",
+  "vendor": "IPTV Lab",
+  "type": "web",
+  "main": "index.html",
+  "title": "IPTV Lab",
+  "icon": "icon.png",
+  "resolution": "1920x1080"
+}
