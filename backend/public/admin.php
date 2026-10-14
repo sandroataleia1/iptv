@@ -96,6 +96,15 @@ header('Cache-Control: no-store');
                     <h2>Publicar nova versão</h2>
                     <p>O app verificará esta versão ao iniciar e exibirá o botão de atualização nos aparelhos cadastrados.</p>
                     <div id="current-release" class="release-summary">Nenhuma versão publicada.</div>
+                    <div id="public-download" class="public-download" hidden>
+                        <label for="public-download-url">Link público para baixar o app</label>
+                        <div class="public-download-controls">
+                            <input id="public-download-url" type="url" readonly>
+                            <button id="copy-public-download" class="button secondary" type="button">Copiar link</button>
+                            <a id="open-public-download" class="button primary" href="public-download.php">Baixar APK</a>
+                        </div>
+                        <p>Qualquer pessoa com este link pode baixar a versão mais recente, sem entrar no painel.</p>
+                    </div>
                     <form id="release-form" class="form-grid">
                         <label>Versão do APK<input name="version" placeholder="1.0.1" pattern="\d+\.\d+\.\d+([+-][a-zA-Z0-9.-]+)?" required></label>
                         <label class="full-width">Novidades<textarea name="notes" rows="3" maxlength="2000" placeholder="Correções e melhorias desta versão"></textarea></label>

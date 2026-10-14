@@ -29,6 +29,7 @@ O endpoint do app está configurado em `app-config.js` como `https://iptv.esis.c
 - A cada abertura, o app consulta o painel e atualiza a lista diretamente no provedor. Aparelhos vencidos continuam abrindo, mas a reprodução fica bloqueada e são exibidos Pix e WhatsApp, quando configurados.
 - A partir de cinco dias antes do vencimento, a informação de assinatura fica laranja. A prorrogação da data no painel registra um histórico de renovação.
 - Para publicar uma atualização, incremente `versionCode` e `versionName` em `android/app/build.gradle` e atualize `version` em `app-config.js` para o mesmo número. Gere e assine o APK com a mesma chave usada nos aparelhos, e envie a versão superior em Atualização do app. Cada aparelho mostra o botão na próxima verificação. O Android ainda pede autorização para instalar apps desta origem e confirmação para concluir a instalação.
+- Em Atualização do app, o painel mostra o link público estável `https://iptv.esis.com.br/public-download.php`, que pode ser compartilhado para qualquer pessoa baixar a versão mais recente sem fazer login. O APK permanece armazenado fora do document root. O link só funcionará após publicar o backend e enviar uma versão do APK no painel.
 
 ## Gerar APK de depuração
 

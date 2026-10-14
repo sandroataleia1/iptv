@@ -177,8 +177,13 @@
                 document.getElementById("current-release").textContent =
                     "Versão atual: " + result.release.version + " · Enviada em " + result.release.created_at +
                     (result.release.release_notes ? " · " + result.release.release_notes : "");
+                var downloadUrl = new URL("public-download.php", window.location.href).href;
+                document.getElementById("public-download").hidden = false;
+                document.getElementById("public-download-url").value = downloadUrl;
+                document.getElementById("open-public-download").href = downloadUrl;
             } else {
                 document.getElementById("current-release").textContent = "Nenhuma versão publicada.";
+                document.getElementById("public-download").hidden = true;
             }
         }).catch(showError);
     }
@@ -371,6 +376,19 @@
             notify("APK " + result.version + " publicado. O app avisará os aparelhos na próxima verificação.");
             loadDashboard();
         }).catch(showError);
+    });
+
+    document.getElementById("copy-public-download").addEventListener("click", function () {
+        var downloadUrl = document.getElementById("public-download-url").value;
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+            notify("Copie o link exibido no campo para compartilhar.", true);
+            return;
+        }
+        navigator.clipboard.writeText(downloadUrl).then(function () {
+            notify("Link público copiado.");
+        }).catch(function () {
+            notify("Não foi possível copiar automaticamente. Copie o link exibido no campo.", true);
+        });
     });
 
     document.getElementById("panel-date").textContent =
