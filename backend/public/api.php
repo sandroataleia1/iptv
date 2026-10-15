@@ -159,13 +159,14 @@ try {
     }
 
     if ($action === 'admin_logout') {
-        if ($action === 'admin_release_upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = $_POST;
-        }
         panel_require_admin($data);
         $_SESSION = array();
         session_destroy();
         panel_json(200, array('authenticated' => false));
+    }
+
+    if ($action === 'admin_release_upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $data = $_POST;
     }
 
     panel_require_admin($data);
