@@ -93,7 +93,7 @@ header('Cache-Control: no-store');
                         <p>Qualquer pessoa com este link pode baixar a versão mais recente, sem entrar no painel.</p>
                     </div>
                     <form id="release-form" class="form-grid">
-                        <label>Versão do APK<input name="version" placeholder="1.0.1" pattern="\d+\.\d+\.\d+([+-][a-zA-Z0-9.-]+)?" required></label>
+                        <label>Versão do APK<input name="version" placeholder="1.0.1" pattern="\d+\.\d+\.\d+([+\x2d][a-zA-Z0-9.\x2d]+)?" required></label>
                         <label class="full-width">Novidades<textarea name="notes" rows="3" maxlength="2000" placeholder="Correções e melhorias desta versão"></textarea></label>
                         <label class="full-width">Arquivo APK<input name="apk" type="file" accept=".apk,application/vnd.android.package-archive" required></label>
                         <button class="button primary full-width" type="submit">Enviar atualização</button>
@@ -120,7 +120,7 @@ header('Cache-Control: no-store');
     <dialog id="device-dialog" class="device-dialog">
         <form id="device-form" class="form-grid">
             <div class="dialog-heading full-width"><div><p class="eyebrow">APARELHO</p><h2 id="device-dialog-title">Adicionar app</h2></div><button id="close-device-dialog" class="icon-button" type="button" aria-label="Fechar">×</button></div>
-            <label class="full-width">Identificador exclusivo<input name="deviceId" required pattern="[0-9a-fA-F-]{36}" placeholder="UUID exibido no app" autocomplete="off"></label>
+            <label class="full-width">Identificador exclusivo<input name="deviceId" required pattern="[0-9a-fA-F\x2d]{36}" placeholder="UUID exibido no app" autocomplete="off"></label>
             <label>Nome do aparelho<input name="name" required maxlength="120" placeholder="Cliente / dispositivo"></label>
             <label class="full-width">URL do servidor IPTV<input name="providerUrl" type="url" maxlength="2048" placeholder="Usa a URL padrão das configurações se ficar em branco"></label>
             <label>Usuário IPTV<input name="username" required maxlength="190" autocomplete="off"></label>

@@ -400,7 +400,7 @@
     }
 
     function showDashboard() {
-        setAppOrientation("portrait");
+        setAppOrientation("landscape");
         channelsOpen = false;
         deviceSettingsOpen = false;
         setCatalogLoading(false);
@@ -2133,7 +2133,7 @@
     window.setInterval(updateClock, 60000);
     deviceIdentifier = getDeviceIdentifier();
     deviceIdLabel.textContent = "ID: " + deviceIdentifier;
-    setAppOrientation("portrait");
+    setAppOrientation("landscape");
     setAccountName("");
     try {
         window.localStorage.removeItem("iptvLabAccount");

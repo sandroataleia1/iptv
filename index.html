@@ -116,6 +116,7 @@
                         <span class="mini-player-stage">
                             <video id="mini-video" class="mini-video" muted autoplay playsinline></video>
                             <span id="mini-player-empty" class="mini-player-empty">Selecione um canal</span>
+                            <span class="mini-player-loading loading-spinner" role="status" aria-label="Carregando canal"></span>
                         </span>
                         <span id="mini-now-playing" class="mini-now-playing">Nenhum canal selecionado</span>
                     </button>
@@ -156,7 +157,7 @@
                     <h2 id="series-detail-title"></h2>
                     <div id="series-detail-rating" class="detail-rating"></div>
                     <p id="series-detail-synopsis" class="detail-synopsis"></p>
-                    <button id="series-watch-button" class="settings-button primary-button watch-button" type="button">Assistir primeiro episódio</button>
+                    <button id="series-continue-button" class="settings-button primary-button watch-button" type="button" hidden>Continuar assistindo</button>
                 </div>
             </div>
             <nav id="series-season-list" class="series-season-list" aria-label="Temporadas"></nav>

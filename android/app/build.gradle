@@ -10,8 +10,8 @@ android {
         applicationId "com.iptv.lab"
         minSdk 23
         targetSdk 34
-        versionCode 11
-        versionName "1.1.9"
+        versionCode 13
+        versionName "1.2.2"
     }
 
     sourceSets {
