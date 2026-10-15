@@ -40,13 +40,12 @@ button { cursor: pointer; touch-action: manipulation; }
 .panel-date { color: var(--muted); font-size: 14px; }
 .page { display: none; }
 .page.is-visible { display: grid; gap: 20px; }
-.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .stat-card, .card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .stat-card { display: grid; min-height: 122px; align-content: space-between; padding: 18px; }
 .stat-card span { color: var(--muted); font-size: 14px; }
 .stat-card strong { font-size: 34px; }
 .stat-card.warning strong { color: #ffb454; }
-.stat-card.expired strong { color: #ff7279; }
 .card { min-width: 0; padding: 22px; }
 .card h2 { margin: 0 0 6px; font-size: 20px; }
 .card p { margin: 0; color: var(--muted); line-height: 1.45; }
@@ -74,7 +73,7 @@ tr:last-child td { border-bottom: 0; }
 .device-id { max-width: 225px; overflow-wrap: anywhere; color: #acd8ff; font-family: Consolas, monospace; font-size: 12px; }
 .status-pill { display: inline-flex; padding: 5px 9px; border-radius: 20px; background: #183c35; color: #8de0bf; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .status-pill.warning { background: #49351c; color: #ffc16b; }
-.status-pill.expired, .status-pill.blocked { background: #482326; color: #ff999c; }
+.status-pill.blocked { background: #482326; color: #ff999c; }
 .table-action { padding: 7px 10px; border: 1px solid #36506a; border-radius: 5px; background: #142438; color: #dcecff; }
 .table-action:hover { border-color: #74bcec; }
 .empty-state { padding: 28px 8px; color: var(--muted); text-align: center; }

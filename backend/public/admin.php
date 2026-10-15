@@ -21,7 +21,7 @@ header('Cache-Control: no-store');
         <form id="login-form" class="login-card">
             <span class="brand-mark">IPTV LAB</span>
             <h1>Painel administrativo</h1>
-            <p>Acesse para gerenciar aparelhos, vencimentos e atualizações.</p>
+            <p>Acesse para gerenciar aparelhos e atualizações.</p>
             <label for="login-password">Senha administrativa</label>
             <input id="login-password" type="password" autocomplete="current-password" required>
             <button class="button primary" type="submit">Entrar</button>
@@ -35,7 +35,6 @@ header('Cache-Control: no-store');
             <nav aria-label="Navegação administrativa">
                 <button class="nav-link is-active" type="button" data-page="dashboard">Visão geral</button>
                 <button class="nav-link" type="button" data-page="devices">Gerenciar apps</button>
-                <button class="nav-link" type="button" data-page="expiry">Vencimentos</button>
                 <button class="nav-link" type="button" data-page="release">Atualização do app</button>
                 <button class="nav-link" type="button" data-page="settings">Configurações</button>
             </nav>
@@ -56,13 +55,8 @@ header('Cache-Control: no-store');
                 <div class="stats-grid">
                     <article class="stat-card"><span>Aplicativos cadastrados</span><strong id="stat-total">—</strong></article>
                     <article class="stat-card"><span>Ativos</span><strong id="stat-active">—</strong></article>
-                    <article class="stat-card warning"><span>Vencem em até 5 dias</span><strong id="stat-expiring">—</strong></article>
-                    <article class="stat-card expired"><span>Vencidos</span><strong id="stat-expired">—</strong></article>
+                    <article class="stat-card warning"><span>Bloqueados</span><strong id="stat-blocked">—</strong></article>
                 </div>
-                <article class="card">
-                    <div class="card-heading"><div><h2>Vencimentos próximos</h2><p>Aparelhos que precisam de renovação.</p></div><button class="button secondary" type="button" data-go="expiry">Ver vencimentos</button></div>
-                    <div id="dashboard-expiring" class="table-wrap"></div>
-                </article>
                 <article class="card">
                     <div class="card-heading"><div><h2>Servidor IPTV</h2><p>O endereço padrão vale para todas as contas.</p></div><button class="button secondary" type="button" data-go="settings">Configurar</button></div>
                     <code id="dashboard-provider" class="provider-value">Não configurado</code>
@@ -81,17 +75,6 @@ header('Cache-Control: no-store');
                     </div>
                     <label class="search-field" for="device-search"><span>Buscar</span><input id="device-search" type="search" placeholder="Identificador, nome ou usuário"></label>
                     <div id="devices-table" class="table-wrap"></div>
-                </article>
-            </section>
-
-            <section class="page" data-view="expiry">
-                <article class="card">
-                    <div class="card-heading"><div><h2>Controle de vencimentos</h2><p>Edite um aparelho para renovar a data e registrar o pagamento.</p></div></div>
-                    <div id="expiry-table" class="table-wrap"></div>
-                </article>
-                <article class="card">
-                    <div class="card-heading"><div><h2>Histórico de renovações</h2><p>Últimas renovações e referências de pagamento registradas.</p></div></div>
-                    <div id="renewals-table" class="table-wrap"></div>
                 </article>
             </section>
 
@@ -126,7 +109,7 @@ header('Cache-Control: no-store');
                         <label class="full-width">URL padrão do servidor IPTV<input name="providerUrl" type="url" placeholder="https://servidor-iptv.example" required></label>
                         <label>Chave ou código Pix<input name="pixKey" maxlength="190" autocomplete="off"></label>
                         <label>WhatsApp de suporte<input name="whatsapp" type="tel" inputmode="tel" placeholder="5511999999999"></label>
-                        <p class="field-hint full-width">Use o WhatsApp com código do país e DDD, somente números. O app exibirá atalhos de Pix e contato para aparelhos próximos do vencimento ou vencidos.</p>
+                        <p class="field-hint full-width">Use o WhatsApp com código do país e DDD, somente números. Estas informações ficam disponíveis para suporte.</p>
                         <button class="button primary full-width" type="submit">Salvar configurações</button>
                     </form>
                 </article>
@@ -158,9 +141,6 @@ header('Cache-Control: no-store');
             <div id="m3u-setup-fields" class="full-width setup-fields" hidden>
                 <label>Link da lista M3U<input name="playlistUrl" type="url" maxlength="2048" placeholder="https://servidor/lista.m3u" autocomplete="off"></label>
             </div>
-            <label>Vencimento<input name="expiresOn" type="date" required></label>
-            <label>Valor da renovação<input name="amount" type="number" min="0" step="0.01" placeholder="Opcional"></label>
-            <label class="full-width">Referência do pagamento<input name="paymentReference" maxlength="190" placeholder="Opcional"></label>
             <label class="enabled-toggle full-width"><input name="enabled" type="checkbox" checked> Acesso liberado</label>
             <p id="device-form-error" class="form-error full-width" role="status"></p>
             <button class="button primary full-width" type="submit">Salvar aparelho</button>

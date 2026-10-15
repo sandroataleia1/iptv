@@ -4,6 +4,6 @@
     window.IPTV_APP_CONFIG = {
         apiUrl: "https://iptv.esis.com.br/api.php",
         publicDownloadUrl: "https://iptv.esis.com.br/public-download.php",
-        version: "1.1.8"
+        version: "1.1.9"
     };
 }());

@@ -8,7 +8,6 @@
     var pageTitles = {
         dashboard: "Visão geral",
         devices: "Gerenciar apps",
-        expiry: "Vencimentos",
         release: "Atualização do app",
         settings: "Configurações"
     };
@@ -87,11 +86,8 @@
         Array.prototype.forEach.call(document.querySelectorAll(".nav-link[data-page]"), function (link) {
             link.classList.toggle("is-active", link.getAttribute("data-page") === page);
         });
-        if (page === "devices" || page === "expiry") {
-            loadDevices(page === "expiry" ? "" : document.getElementById("device-search").value);
-        }
-        if (page === "expiry") {
-            loadRenewals();
+        if (page === "devices") {
+            loadDevices(document.getElementById("device-search").value);
         }
         if (page === "settings") {
             loadSettings();
@@ -115,46 +111,29 @@
     }
 
     function getDeviceStatus(device) {
-        var today = new Date();
-        var expiry = new Date(device.expires_on + "T23:59:59");
-        var days = Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
         if (Number(device.enabled) !== 1) {
-            return { label: "Bloqueado", className: "blocked", days: days };
+            return { label: "Bloqueado", className: "blocked" };
         }
-        if (days < 0) {
-            return { label: "Vencido", className: "expired", days: days };
-        }
-        if (days <= 5) {
-            return { label: days === 0 ? "Vence hoje" : "Vence em " + days + " dia(s)", className: "warning", days: days };
-        }
-        return { label: "Ativo", className: "", days: days };
+        return { label: "Ativo", className: "" };
     }
 
-    function makeTable(devices, expiryOnly) {
-        var filtered = devices.slice();
-        var html = '<table><thead><tr><th>Identificador</th><th>Nome</th><th>Usuário</th><th>Vencimento</th><th>Status</th><th>Ação</th></tr></thead><tbody>';
+    function makeTable(devices) {
+        var html = '<table><thead><tr><th>Identificador</th><th>Nome</th><th>Usuário</th><th>Status</th><th>Ação</th></tr></thead><tbody>';
         var index;
         var device;
         var status;
-        if (expiryOnly) {
-            filtered = filtered.filter(function (entry) {
-                var daysRemaining = getDeviceStatus(entry).days;
-                return daysRemaining >= 0 && daysRemaining <= 5;
-            });
-        }
-        if (!filtered.length) {
+        if (!devices.length) {
             return '<div class="empty-state">Nenhum aparelho para exibir.</div>';
         }
-        for (index = 0; index < filtered.length; index += 1) {
-            device = filtered[index];
+        for (index = 0; index < devices.length; index += 1) {
+            device = devices[index];
             status = getDeviceStatus(device);
             html += "<tr><td><span class=\"device-id\">" + escapeText(device.device_id) + "</span></td>" +
                 "<td>" + escapeText(device.display_name) + "</td>" +
                 "<td>" + escapeText(device.username) + "</td>" +
-                "<td>" + escapeText(device.expires_on) + "</td>" +
                 "<td><span class=\"status-pill " + status.className + "\">" + status.label + "</span></td>" +
                 "<td><button class=\"table-action\" type=\"button\" data-edit-device=\"" +
-                escapeText(device.device_id) + "\">Editar / renovar</button></td></tr>";
+                escapeText(device.device_id) + "\">Configurar</button></td></tr>";
         }
         return html + "</tbody></table>";
     }
@@ -198,8 +177,7 @@
         request("admin_dashboard").then(function (result) {
             setText("stat-total", result.counts.total);
             setText("stat-active", result.counts.active);
-            setText("stat-expiring", result.counts.expiring);
-            setText("stat-expired", result.counts.expired);
+            setText("stat-blocked", result.counts.blocked);
             setText("dashboard-provider", result.settings.providerUrl || "Não configurado");
             if (result.release) {
                 document.getElementById("current-release").textContent =
@@ -221,44 +199,10 @@
             devicesCache = result.devices || [];
             var devicesContainer = document.getElementById("devices-table");
             var pendingContainer = document.getElementById("pending-devices-table");
-            var expiringContainer = document.getElementById("dashboard-expiring");
-            var expiryContainer = document.getElementById("expiry-table");
             pendingContainer.innerHTML = makePendingTable(result.pendingDevices || []);
             bindPendingButtons(pendingContainer);
-            devicesContainer.innerHTML = makeTable(devicesCache, false);
-            expiringContainer.innerHTML = makeTable(devicesCache, true);
-            expiryContainer.innerHTML = makeTable(devicesCache, false);
+            devicesContainer.innerHTML = makeTable(devicesCache);
             bindEditButtons(devicesContainer);
-            bindEditButtons(expiringContainer);
-            bindEditButtons(expiryContainer);
-        }).catch(showError);
-    }
-
-    function loadRenewals() {
-        request("admin_renewals").then(function (result) {
-            var container = document.getElementById("renewals-table");
-            var entries = result.renewals || [];
-            var html = '<table><thead><tr><th>Aparelho</th><th>Identificador</th><th>Vencimento anterior</th><th>Novo vencimento</th><th>Valor</th><th>Pagamento</th><th>Data do registro</th></tr></thead><tbody>';
-            var index;
-            var entry;
-            var amount;
-            if (!entries.length) {
-                container.innerHTML = '<div class="empty-state">Nenhuma renovação registrada ainda.</div>';
-                return;
-            }
-            for (index = 0; index < entries.length; index += 1) {
-                entry = entries[index];
-                amount = entry.amount === null ? "—" :
-                    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(entry.amount));
-                html += "<tr><td>" + escapeText(entry.display_name) + "</td>" +
-                    "<td><span class=\"device-id\">" + escapeText(entry.device_id) + "</span></td>" +
-                    "<td>" + escapeText(entry.previous_expiry) + "</td>" +
-                    "<td>" + escapeText(entry.new_expiry) + "</td>" +
-                    "<td>" + escapeText(amount) + "</td>" +
-                    "<td>" + escapeText(entry.payment_reference || "—") + "</td>" +
-                    "<td>" + escapeText(entry.created_at) + "</td></tr>";
-            }
-            container.innerHTML = html + "</tbody></table>";
         }).catch(showError);
     }
 
@@ -284,7 +228,6 @@
         deviceForm.elements.deviceId.readOnly = !!deviceId;
         deviceForm.elements.name.value = deviceId ? "Novo aparelho " + deviceId.slice(0, 8) : "";
         deviceForm.elements.enabled.checked = true;
-        deviceForm.elements.expiresOn.value = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
         deviceForm.dataset.hasPassword = "false";
         document.getElementById("device-dialog-title").textContent = deviceId ? "Configurar novo app" : "Adicionar app";
         document.getElementById("device-form-error").textContent = "";
@@ -309,11 +252,8 @@
             deviceForm.elements.setupMethod.value = device.configuration_type === "m3u" ? "m3u" : "credentials";
             deviceFormHasPassword = !!device.has_password;
             deviceForm.dataset.hasPassword = deviceFormHasPassword ? "true" : "false";
-            deviceForm.elements.expiresOn.value = device.expires_on;
             deviceForm.elements.enabled.checked = Number(device.enabled) === 1;
-            deviceForm.elements.amount.value = "";
-            deviceForm.elements.paymentReference.value = "";
-            document.getElementById("device-dialog-title").textContent = "Editar / renovar app";
+            document.getElementById("device-dialog-title").textContent = "Configurar app";
             document.getElementById("device-form-error").textContent = "";
             updateSetupFields();
             deviceDialog.showModal();
@@ -494,19 +434,13 @@
             password: String(formData.get("password") || ""),
             providerUrl: String(formData.get("providerUrl") || "").trim(),
             playlistUrl: String(formData.get("playlistUrl") || "").trim(),
-            expiresOn: String(formData.get("expiresOn") || ""),
-            enabled: deviceForm.elements.enabled.checked,
-            amount: String(formData.get("amount") || ""),
-            paymentReference: String(formData.get("paymentReference") || "")
+            enabled: deviceForm.elements.enabled.checked
         };
         document.getElementById("device-form-error").textContent = "";
         request("admin_device_save", payload).then(function () {
             deviceDialog.close();
-            notify(editingDeviceId ? "Aparelho atualizado. Se a data foi prorrogada, a renovação foi registrada." : "Aparelho cadastrado.");
+            notify(editingDeviceId ? "Aparelho atualizado." : "Aparelho cadastrado.");
             loadDevices(activePage === "devices" ? document.getElementById("device-search").value : "");
-            if (activePage === "expiry") {
-                loadRenewals();
-            }
             loadDashboard();
         }).catch(function (error) {
             document.getElementById("device-form-error").textContent = error.message;

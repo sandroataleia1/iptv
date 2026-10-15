@@ -65,11 +65,8 @@
     var deviceStatusTitle = document.getElementById("device-status-title");
     var deviceStatusMessage = document.getElementById("device-status-message");
     var deviceIdLabel = document.getElementById("device-id-label");
-    var deviceExpiryLabel = document.getElementById("device-expiry-label");
     var appReleaseLabel = document.getElementById("app-release-label");
     var copyDeviceIdButton = document.getElementById("copy-device-id");
-    var copyPixButton = document.getElementById("copy-pix-key");
-    var contactSupportLink = document.getElementById("contact-support");
     var refreshChannelsButton = document.getElementById("refresh-channels-button");
     var updateAppButton = document.getElementById("update-app-button");
     var updateAppLabel = document.getElementById("update-app-label");
@@ -410,7 +407,7 @@
 
     function showDashboardNotice(action) {
         var messages = {
-            "device-inactive": "Ative ou renove este aparelho pelo painel para acessar a lista.",
+            "device-inactive": "Este aparelho está bloqueado pelo administrador.",
             "movies-account": "Este aparelho não está autorizado a carregar filmes.",
             "series-account": "Este aparelho não está autorizado a carregar séries.",
             "empty-movies": "Nenhum filme foi encontrado nesta conta.",
@@ -1110,11 +1107,6 @@
         deviceStatusCard.className = "device-status-card" + (stateClass ? " " + stateClass : "");
     }
 
-    function formatDeviceDate(dateString) {
-        var parts = dateString.split("-");
-        return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : dateString;
-    }
-
     function saveManagedAccount(account) {
         managedAccount = account;
         setAccountName(account.username || "Lista M3U");
@@ -1144,21 +1136,6 @@
         }
         document.body.removeChild(temporaryInput);
         showDashboardNotice(copied ? message : "Não foi possível copiar o texto.");
-    }
-
-    function updatePaymentLinks(data) {
-        var needsRenewal = data.status === "expired" ||
-            (data.status === "active" && data.daysRemaining <= 5);
-        var whatsapp = (data.whatsapp || "").replace(/\D/g, "");
-        if (window.IPTV_APP_CONFIG) {
-            window.IPTV_APP_CONFIG.pixKey = data.pixKey || "";
-        }
-        copyPixButton.hidden = !needsRenewal || !data.pixKey;
-        contactSupportLink.hidden = !needsRenewal || !whatsapp;
-        if (whatsapp) {
-            contactSupportLink.href = "https://wa.me/" + whatsapp + "?text=" +
-                encodeURIComponent("Olá, preciso renovar ou desbloquear meu IPTV. ID do aparelho: " + deviceIdentifier);
-        }
     }
 
     function showAppRelease(release) {
@@ -1195,7 +1172,6 @@
         var stateClass = "";
         var title = "Aplicativo não cadastrado";
         var message = "Copie o identificador e cadastre este aparelho no painel administrativo.";
-        var expiryText = "";
         var account;
 
         deviceIdentifier = data.deviceId || deviceIdentifier;
@@ -1204,17 +1180,9 @@
         copyDeviceIdButton.hidden = data.status === "active";
 
         if (data.status === "active") {
-            expiryText = data.expiresOn ? "Vencimento: " + formatDeviceDate(data.expiresOn) : "";
-            if (data.daysRemaining <= 5) {
-                title = data.daysRemaining < 0 ? "Assinatura vencida" :
-                    (data.daysRemaining === 0 ? "Assinatura vence hoje" : "Faltam " + data.daysRemaining + " dias para vencer");
-                message = "Renove pelo Pix ou entre em contato para manter o acesso.";
-                stateClass = "is-warning";
-            } else {
-                title = "Assinatura ativa";
-                message = "Lista verificada pelo painel. Atualizando os canais...";
-                stateClass = "is-active";
-            }
+            title = "Acesso ativo";
+            message = "Lista verificada pelo painel. Atualizando os canais...";
+            stateClass = "is-active";
             account = {
                 server: (data.providerUrl || "").replace(/\/+$/, ""),
                 username: data.account ? data.account.username : "",
@@ -1239,15 +1207,10 @@
             setRefreshChannelsLoading(false);
             setAccountName("");
             managedAccount = null;
-            if (data.status === "expired") {
-                title = "Assinatura vencida";
-                message = "O app continua disponível. Pague pelo Pix ou chame no WhatsApp para renovar e desbloquear.";
-                expiryText = data.expiresOn ? "Venceu em: " + formatDeviceDate(data.expiresOn) : "";
-                stateClass = "is-expired";
-            } else if (data.status === "blocked") {
+            if (data.status === "blocked") {
                 title = "Aparelho bloqueado";
-                message = data.message || "Entre em contato pelo WhatsApp para obter ajuda.";
-                stateClass = "is-expired";
+                message = data.message || "O acesso foi bloqueado pelo administrador.";
+                stateClass = "is-error";
             } else {
                 title = "Aguardando ativação";
                 message = "Este app foi instalado e aguarda configuração pelo administrador. O identificador foi enviado ao painel.";
@@ -1255,9 +1218,7 @@
             }
         }
 
-        deviceExpiryLabel.textContent = expiryText;
         showDeviceStatus(title, message, stateClass);
-        updatePaymentLinks(data);
         showAppRelease(data.release);
     }
 
@@ -2023,18 +1984,6 @@
     backHomeButton.onclick = showDashboard;
     copyDeviceIdButton.onclick = function () {
         copyDeviceText(deviceIdentifier, "Identificador do app copiado.");
-    };
-    copyPixButton.onclick = function () {
-        var configuration = window.IPTV_APP_CONFIG || {};
-        if (configuration.pixKey) {
-            copyDeviceText(configuration.pixKey, "Chave Pix copiada.");
-        }
-    };
-    contactSupportLink.onclick = function (event) {
-        if (window.IPTVAndroid && window.IPTVAndroid.openSupport && !contactSupportLink.hidden) {
-            event.preventDefault();
-            window.IPTVAndroid.openSupport(contactSupportLink.href);
-        }
     };
     retryDeviceCheckButton.onclick = checkManagedDevice;
     refreshChannelsButton.onclick = checkManagedDevice;

@@ -3,11 +3,10 @@ CREATE TABLE IF NOT EXISTS app_devices (
     display_name VARCHAR(120) NOT NULL,
     username VARCHAR(190) NOT NULL,
     password_encrypted TEXT NOT NULL,
-    expires_on DATE NOT NULL,
+    expires_on DATE NULL DEFAULT NULL,
     enabled TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_app_devices_expiry (expires_on),
     KEY idx_app_devices_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
