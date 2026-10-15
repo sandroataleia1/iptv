@@ -40,12 +40,27 @@ try {
             panel_json(400, array('error' => 'Identificador do dispositivo inválido.'));
         }
 
+        $registration = panel_db()->prepare(
+            'INSERT INTO app_device_registrations (device_id, app_version) VALUES (?, ?) ' .
+            'ON DUPLICATE KEY UPDATE app_version = VALUES(app_version), last_seen = CURRENT_TIMESTAMP'
+        );
+        $registration->execute(array(
+            $deviceId,
+            substr(trim((string) ($data['appVersion'] ?? '')), 0, 32),
+        ));
+
         $statement = panel_db()->prepare(
-            'SELECT device_id, display_name, username, password_encrypted, expires_on, enabled ' .
-            'FROM app_devices WHERE device_id = ?'
+            'SELECT d.device_id, d.display_name, d.username, d.password_encrypted, d.expires_on, d.enabled, ' .
+            'c.configuration_type, c.provider_url, c.playlist_url_encrypted ' .
+            'FROM app_devices d LEFT JOIN app_device_configurations c ON c.device_id = d.device_id ' .
+            'WHERE d.device_id = ?'
         );
         $statement->execute(array($deviceId));
         $device = $statement->fetch();
+        if ($device) {
+            $registration = panel_db()->prepare('DELETE FROM app_device_registrations WHERE device_id = ?');
+            $registration->execute(array($deviceId));
+        }
         $release = panel_latest_release();
         $pixKey = panel_setting('pix_key');
         $whatsapp = panel_setting('whatsapp');
@@ -93,10 +108,19 @@ try {
         }
 
         if ($status === 'active') {
-            $response['account'] = array(
-                'username' => $device['username'],
-                'password' => panel_decrypt_password($device['password_encrypted']),
-            );
+            $configurationType = $device['configuration_type'] ?: 'xtream';
+            $response['configurationType'] = $configurationType;
+            if ($configurationType === 'm3u') {
+                $response['playlistUrl'] = panel_decrypt_password($device['playlist_url_encrypted']);
+            } else {
+                if (!empty($device['provider_url'])) {
+                    $response['providerUrl'] = $device['provider_url'];
+                }
+                $response['account'] = array(
+                    'username' => $device['username'],
+                    'password' => panel_decrypt_password($device['password_encrypted']),
+                );
+            }
         }
 
         panel_json(200, $response);
@@ -181,7 +205,21 @@ try {
         $sql .= ' ORDER BY expires_on ASC, display_name ASC LIMIT 500';
         $statement = panel_db()->prepare($sql);
         $statement->execute($parameters);
-        panel_json(200, array('devices' => $statement->fetchAll()));
+        $pendingSql = 'SELECT r.device_id, r.app_version, r.first_seen, r.last_seen ' .
+            'FROM app_device_registrations r LEFT JOIN app_devices d ON d.device_id = r.device_id ' .
+            'WHERE d.device_id IS NULL';
+        $pendingParameters = array();
+        if ($search !== '') {
+            $pendingSql .= ' AND r.device_id LIKE ?';
+            $pendingParameters[] = '%' . $search . '%';
+        }
+        $pendingSql .= ' ORDER BY r.last_seen DESC LIMIT 200';
+        $pendingStatement = panel_db()->prepare($pendingSql);
+        $pendingStatement->execute($pendingParameters);
+        panel_json(200, array(
+            'devices' => $statement->fetchAll(),
+            'pendingDevices' => $pendingStatement->fetchAll(),
+        ));
     }
 
     if ($action === 'admin_renewals') {
@@ -200,26 +238,53 @@ try {
             panel_json(400, array('error' => 'Identificador do aparelho inválido.'));
         }
         $statement = panel_db()->prepare(
-            'SELECT device_id, display_name, username, expires_on, enabled FROM app_devices WHERE device_id = ?'
+            'SELECT d.device_id, d.display_name, d.username, d.password_encrypted, d.expires_on, d.enabled, ' .
+            'c.configuration_type, c.provider_url, c.playlist_url_encrypted ' .
+            'FROM app_devices d LEFT JOIN app_device_configurations c ON c.device_id = d.device_id ' .
+            'WHERE d.device_id = ?'
         );
         $statement->execute(array($deviceId));
         $device = $statement->fetch();
         if (!$device) {
             panel_json(404, array('error' => 'Aparelho não encontrado.'));
         }
+        $device['configuration_type'] = $device['configuration_type'] ?: 'xtream';
+        $device['provider_url'] = $device['provider_url'] ?: '';
+        $device['has_password'] = $device['password_encrypted'] !== '';
+        unset($device['password_encrypted']);
+        $device['playlist_url'] = $device['configuration_type'] === 'm3u' ?
+            panel_decrypt_password($device['playlist_url_encrypted']) : '';
+        unset($device['playlist_url_encrypted']);
         panel_json(200, array('device' => $device));
     }
 
     if ($action === 'admin_device_save') {
         $deviceId = strtolower(trim((string) ($data['deviceId'] ?? '')));
         $name = trim((string) ($data['name'] ?? ''));
+        $configurationType = (string) ($data['configurationType'] ?? 'xtream');
+        $providerUrl = rtrim(trim((string) ($data['providerUrl'] ?? '')), '/');
         $username = trim((string) ($data['username'] ?? ''));
         $password = (string) ($data['password'] ?? '');
+        $playlistUrl = trim((string) ($data['playlistUrl'] ?? ''));
         $expiresOn = trim((string) ($data['expiresOn'] ?? ''));
         $enabled = !empty($data['enabled']) ? 1 : 0;
-        if (!panel_valid_device_id($deviceId) || $name === '' || $username === '' ||
-                !panel_valid_date($expiresOn)) {
-            panel_json(400, array('error' => 'Confira o identificador, nome, usuário e vencimento.'));
+        if (!panel_valid_device_id($deviceId) || $name === '' || strlen($name) > 120 ||
+                strlen($username) > 190 ||
+                !in_array($configurationType, array('xtream', 'm3u'), true) || !panel_valid_date($expiresOn)) {
+            panel_json(400, array('error' => 'Confira o identificador, nome, tipo de configuração e vencimento.'));
+        }
+        if ($configurationType === 'm3u' &&
+                (strlen($playlistUrl) > 2048 || !filter_var($playlistUrl, FILTER_VALIDATE_URL) ||
+                    !preg_match('/^https?:\/\//i', $playlistUrl))) {
+            panel_json(400, array('error' => 'Informe um endereço M3U válido, começando com http:// ou https://.'));
+        }
+        if ($configurationType === 'xtream' && $providerUrl !== '' &&
+                (strlen($providerUrl) > 2048 || !filter_var($providerUrl, FILTER_VALIDATE_URL) ||
+                !preg_match('/^https?:\/\//i', $providerUrl))) {
+            panel_json(400, array('error' => 'Informe uma URL válida para o servidor IPTV.'));
+        }
+        if ($configurationType === 'xtream' && $username === '') {
+            panel_json(400, array('error' => 'Informe o usuário da conta IPTV.'));
         }
 
         $statement = panel_db()->prepare(
@@ -227,12 +292,14 @@ try {
         );
         $statement->execute(array($deviceId));
         $existing = $statement->fetch();
-        if (!$existing && $password === '') {
+        if ($configurationType === 'xtream' && $password === '' &&
+                (!$existing || $existing['password_encrypted'] === '')) {
             panel_json(400, array('error' => 'Informe a senha IPTV para cadastrar o aparelho.'));
         }
 
-        $encryptedPassword = $password !== '' ? panel_encrypt_password($password) :
-            (string) $existing['password_encrypted'];
+        $storedUsername = $configurationType === 'm3u' ? '' : $username;
+        $encryptedPassword = $configurationType === 'm3u' ? '' :
+            ($password !== '' ? panel_encrypt_password($password) : (string) $existing['password_encrypted']);
         $pdo = panel_db();
         $pdo->beginTransaction();
         try {
@@ -242,7 +309,22 @@ try {
                 'username = VALUES(username), password_encrypted = VALUES(password_encrypted), ' .
                 'expires_on = VALUES(expires_on), enabled = VALUES(enabled)'
             );
-            $statement->execute(array($deviceId, $name, $username, $encryptedPassword, $expiresOn, $enabled));
+            $statement->execute(array($deviceId, $name, $storedUsername, $encryptedPassword, $expiresOn, $enabled));
+
+            $configuration = $pdo->prepare(
+                'INSERT INTO app_device_configurations (device_id, configuration_type, provider_url, playlist_url_encrypted) ' .
+                'VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE configuration_type = VALUES(configuration_type), ' .
+                'provider_url = VALUES(provider_url), ' .
+                'playlist_url_encrypted = VALUES(playlist_url_encrypted)'
+            );
+            $configuration->execute(array(
+                $deviceId,
+                $configurationType,
+                $configurationType === 'xtream' ? $providerUrl : '',
+                $configurationType === 'm3u' ? panel_encrypt_password($playlistUrl) : '',
+            ));
+            $registration = $pdo->prepare('DELETE FROM app_device_registrations WHERE device_id = ?');
+            $registration->execute(array($deviceId));
 
             if ($existing && $expiresOn > $existing['expires_on']) {
                 $renewal = $pdo->prepare(

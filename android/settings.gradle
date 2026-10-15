@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "IPTVLab"
 include(":app")
+include(":admin")

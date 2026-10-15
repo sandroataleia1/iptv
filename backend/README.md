@@ -4,7 +4,7 @@ O backend utiliza PHP 7.4 ou superior, MySQL 5.7 ou superior, PDO MySQL e OpenSS
 
 ## Instalação
 
-1. Crie um banco MySQL e um usuário com acesso somente a esse banco. Importe `schema.sql`.
+1. Crie um banco MySQL e um usuário com acesso somente a esse banco. Importe `schema.sql`. Se o painel já estiver instalado, execute o arquivo novamente para criar as tabelas de instalações pendentes e configurações M3U.
 2. Copie `config.example.php` para `config.php`, no diretório `backend`, e preencha host, banco, usuário e senha do MySQL, URL do provedor IPTV e a URL HTTPS pública `https://iptv.esis.com.br/`.
 3. Gere a chave de criptografia e o hash da senha administrativa no servidor:
 
@@ -18,7 +18,7 @@ O backend utiliza PHP 7.4 ou superior, MySQL 5.7 ou superior, PDO MySQL e OpenSS
 5. Restrinja as permissões de `config.php` (por exemplo, `0600`) e da pasta `backend/storage` (por exemplo, `0700`). A pasta de armazenamento deve permanecer fora do document root.
 6. Publique o conteúdo de `backend/public` no document root do subdomínio. O painel ficará em `https://iptv.esis.com.br/admin.php`.
 7. No servidor, permita uploads de APK de até 300 MB configurando `upload_max_filesize`, `post_max_size` e `max_execution_time` do PHP.
-8. Distribua e instale o APK atual. Abra-o uma vez para gerar seu identificador; copie o ID exibido e cadastre-o em Gerenciar apps no painel. Cada aparelho cadastrado recebe nome, usuário/senha IPTV e vencimento.
+8. Distribua e instale o player IPTV versão 1.1.8 ou superior. Ao abrir pela primeira vez, ele registra o identificador no servidor; a instalação aparecerá em **Novos apps instalados** no painel administrativo. Use **Configurar app** para cadastrar nome, vencimento e conta IPTV por QR code, usuário/senha ou link M3U.
 
 O endpoint do app está configurado em `app-config.js` como `https://iptv.esis.com.br/api.php`. Se o endereço mudar, atualize esse arquivo e gere um novo APK.
 
@@ -26,6 +26,8 @@ O endpoint do app está configurado em `app-config.js` como `https://iptv.esis.c
 
 - O painel exige uma senha administrativa e protege alterações com sessão, token CSRF e consultas parametrizadas.
 - Senhas IPTV são armazenadas no MySQL criptografadas com AES-256-GCM. O app as recebe somente pelo endpoint HTTPS para consultar a conta e reproduzir seus canais.
+- Links M3U também são armazenados criptografados. QR codes compatíveis devem conter uma URL M3U ou os campos URL do servidor, usuário e senha (JSON ou parâmetros de URL).
+- O app Android IPTV Ativador usa o mesmo painel administrativo HTTPS e permite escanear o QR code do provedor. O painel atualiza a lista de novas instalações automaticamente enquanto a página de apps está aberta.
 - A cada abertura, o app consulta o painel e atualiza a lista diretamente no provedor. Aparelhos vencidos continuam abrindo, mas a reprodução fica bloqueada e são exibidos Pix e WhatsApp, quando configurados.
 - A partir de cinco dias antes do vencimento, a informação de assinatura fica laranja. A prorrogação da data no painel registra um histórico de renovação.
 - Para publicar uma atualização, incremente `versionCode` e `versionName` em `android/app/build.gradle` e atualize `version` em `app-config.js` para o mesmo número. Gere e assine o APK com a mesma chave usada nos aparelhos, e envie a versão superior em Atualização do app. Cada aparelho mostra o botão na próxima verificação. O Android ainda pede autorização para instalar apps desta origem e confirmação para concluir a instalação.
@@ -41,3 +43,5 @@ gradlew.bat assembleDebug
 ```
 
 O arquivo de teste é `android/app/build/outputs/apk/debug/app-debug.apk`. Para distribuir atualizações fora de um ambiente de teste, configure uma chave de assinatura de lançamento e mantenha-a protegida; a assinatura precisa corresponder à do app instalado.
+
+Para gerar o APK separado de administração/ativação, execute `gradlew.bat :admin:assembleDebug` dentro da pasta `android`. O arquivo de teste é `android/admin/build/outputs/apk/debug/admin-debug.apk`; ele abre `https://iptv.esis.com.br/admin.php`.

@@ -19,6 +19,7 @@
     var deviceForm = document.getElementById("device-form");
     var editingDeviceId = "";
     var feedbackTimer = null;
+    var deviceFormHasPassword = false;
 
     function request(action, data) {
         var body = data || {};
@@ -158,10 +159,37 @@
         return html + "</tbody></table>";
     }
 
+    function makePendingTable(devices) {
+        var html = '<table><thead><tr><th>Identificador</th><th>Versão do app</th><th>Primeiro contato</th><th>Último contato</th><th>Ação</th></tr></thead><tbody>';
+        var index;
+        var device;
+        if (!devices.length) {
+            return '<div class="empty-state">Nenhum app novo aguardando configuração.</div>';
+        }
+        for (index = 0; index < devices.length; index += 1) {
+            device = devices[index];
+            html += "<tr><td><span class=\"device-id\">" + escapeText(device.device_id) + "</span></td>" +
+                "<td>" + escapeText(device.app_version || "—") + "</td>" +
+                "<td>" + escapeText(device.first_seen || "—") + "</td>" +
+                "<td>" + escapeText(device.last_seen || "—") + "</td>" +
+                "<td><button class=\"table-action\" type=\"button\" data-configure-device=\"" +
+                escapeText(device.device_id) + "\">Configurar app</button></td></tr>";
+        }
+        return html + "</tbody></table>";
+    }
+
     function bindEditButtons(container) {
         Array.prototype.forEach.call(container.querySelectorAll("[data-edit-device]"), function (button) {
             button.addEventListener("click", function () {
                 editDevice(button.getAttribute("data-edit-device"));
+            });
+        });
+    }
+
+    function bindPendingButtons(container) {
+        Array.prototype.forEach.call(container.querySelectorAll("[data-configure-device]"), function (button) {
+            button.addEventListener("click", function () {
+                openNewDevice(button.getAttribute("data-configure-device"));
             });
         });
     }
@@ -192,8 +220,11 @@
         request("admin_devices", { search: search || "" }).then(function (result) {
             devicesCache = result.devices || [];
             var devicesContainer = document.getElementById("devices-table");
+            var pendingContainer = document.getElementById("pending-devices-table");
             var expiringContainer = document.getElementById("dashboard-expiring");
             var expiryContainer = document.getElementById("expiry-table");
+            pendingContainer.innerHTML = makePendingTable(result.pendingDevices || []);
+            bindPendingButtons(pendingContainer);
             devicesContainer.innerHTML = makeTable(devicesCache, false);
             expiringContainer.innerHTML = makeTable(devicesCache, true);
             expiryContainer.innerHTML = makeTable(devicesCache, false);
@@ -244,14 +275,22 @@
         notify(error.message || "Erro ao acessar o painel.", true);
     }
 
-    function openNewDevice() {
+    function openNewDevice(deviceId) {
+        deviceId = deviceId || "";
         editingDeviceId = "";
+        deviceFormHasPassword = false;
         deviceForm.reset();
-        deviceForm.elements.deviceId.readOnly = false;
+        deviceForm.elements.deviceId.value = deviceId || "";
+        deviceForm.elements.deviceId.readOnly = !!deviceId;
+        deviceForm.elements.name.value = deviceId ? "Novo aparelho " + deviceId.slice(0, 8) : "";
         deviceForm.elements.enabled.checked = true;
         deviceForm.elements.expiresOn.value = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-        document.getElementById("device-dialog-title").textContent = "Adicionar app";
+        deviceForm.dataset.hasPassword = "false";
+        document.getElementById("device-dialog-title").textContent = deviceId ? "Configurar novo app" : "Adicionar app";
         document.getElementById("device-form-error").textContent = "";
+        document.getElementById("qr-scan-message").textContent =
+            "O QR code deve conter uma URL M3U ou URL do servidor, usuário e senha.";
+        updateSetupFields();
         deviceDialog.showModal();
     }
 
@@ -265,15 +304,128 @@
             deviceForm.elements.name.value = device.display_name;
             deviceForm.elements.username.value = device.username;
             deviceForm.elements.password.value = "";
+            deviceForm.elements.playlistUrl.value = device.playlist_url || "";
+            deviceForm.elements.providerUrl.value = device.provider_url || "";
+            deviceForm.elements.setupMethod.value = device.configuration_type === "m3u" ? "m3u" : "credentials";
+            deviceFormHasPassword = !!device.has_password;
+            deviceForm.dataset.hasPassword = deviceFormHasPassword ? "true" : "false";
             deviceForm.elements.expiresOn.value = device.expires_on;
             deviceForm.elements.enabled.checked = Number(device.enabled) === 1;
             deviceForm.elements.amount.value = "";
             deviceForm.elements.paymentReference.value = "";
             document.getElementById("device-dialog-title").textContent = "Editar / renovar app";
             document.getElementById("device-form-error").textContent = "";
+            updateSetupFields();
             deviceDialog.showModal();
         }).catch(showError);
     }
+
+    function updateSetupFields() {
+        var method = deviceForm.elements.setupMethod.value;
+        var credentials = method === "credentials";
+        document.getElementById("qr-setup-fields").hidden = method !== "qr";
+        document.getElementById("credentials-setup-fields").hidden = !credentials;
+        document.getElementById("m3u-setup-fields").hidden = method !== "m3u";
+        if (!credentials) {
+            deviceForm.elements.providerUrl.value = "";
+        }
+        if (method !== "m3u") {
+            deviceForm.elements.playlistUrl.value = "";
+        }
+        deviceForm.elements.username.required = credentials;
+        deviceForm.elements.password.required = credentials && !deviceFormHasPassword;
+        deviceForm.elements.playlistUrl.required = method === "m3u";
+    }
+
+    function applyQrConfiguration(rawValue) {
+        var configuration = null;
+        var qrText = String(rawValue || "").trim();
+        var url;
+        var username;
+        var password;
+        var playlistUrl;
+        var server;
+        try {
+            configuration = JSON.parse(qrText);
+        } catch (error) {
+            configuration = null;
+        }
+        if (configuration && typeof configuration === "object") {
+            playlistUrl = configuration.playlistUrl || configuration.playlist_url ||
+                configuration.m3u || configuration.url || "";
+            username = configuration.username || configuration.user || "";
+            password = configuration.password || configuration.pass || "";
+            server = configuration.server || configuration.serverUrl || configuration.server_url ||
+                configuration.providerUrl || configuration.host || "";
+            if (server) {
+                try {
+                    server = new URL(server).origin;
+                } catch (error) {
+                    server = "";
+                }
+            }
+            if (!server && playlistUrl && username && password) {
+                try {
+                    server = new URL(playlistUrl).origin;
+                } catch (error) {
+                    server = "";
+                }
+            }
+            if (playlistUrl && (!username || !password ||
+                    /\.m3u8?(?:$|[?#])/i.test(playlistUrl) || configuration.type === "m3u")) {
+                deviceForm.elements.playlistUrl.value = playlistUrl;
+                deviceForm.elements.setupMethod.value = "m3u";
+            } else if (username && password && server) {
+                deviceForm.elements.username.value = username;
+                deviceForm.elements.password.value = password;
+                deviceForm.elements.providerUrl.value = server;
+                deviceForm.elements.setupMethod.value = "credentials";
+                deviceFormHasPassword = false;
+            } else {
+                showQrScanMessage("O QR code não contém um link M3U ou servidor, usuário e senha reconhecidos.", true);
+                return;
+            }
+        } else {
+            try {
+                url = new URL(qrText);
+            } catch (error) {
+                showQrScanMessage("O QR code não contém uma URL válida.", true);
+                return;
+            }
+            if (url.protocol !== "https:" && url.protocol !== "http:") {
+                showQrScanMessage("Use um QR code com endereço http:// ou https://.", true);
+                return;
+            }
+            username = url.searchParams.get("username") || url.searchParams.get("user") || "";
+            password = url.searchParams.get("password") || url.searchParams.get("pass") || "";
+            if (/\.m3u8?(?:$|[?#])/i.test(url.pathname) ||
+                    (url.pathname.toLowerCase().indexOf("get.php") !== -1 && url.searchParams.has("type"))) {
+                deviceForm.elements.playlistUrl.value = url.href;
+                deviceForm.elements.setupMethod.value = "m3u";
+            } else if (username && password) {
+                deviceForm.elements.username.value = username;
+                deviceForm.elements.password.value = password;
+                deviceForm.elements.providerUrl.value = url.origin;
+                deviceForm.elements.setupMethod.value = "credentials";
+                deviceFormHasPassword = false;
+            } else {
+                showQrScanMessage("O QR code precisa conter o link M3U ou servidor, usuário e senha IPTV.", true);
+                return;
+            }
+        }
+        updateSetupFields();
+        showQrScanMessage("QR code lido. Confira os dados e salve para configurar o aparelho.", false);
+    }
+
+    function showQrScanMessage(message, isError) {
+        var label = document.getElementById("qr-scan-message");
+        label.textContent = message;
+        label.className = "field-hint" + (isError ? " form-error" : "");
+    }
+
+    window.onQrScanned = function (value) {
+        applyQrConfiguration(value);
+    };
 
     document.getElementById("login-form").addEventListener("submit", function (event) {
         event.preventDefault();
@@ -310,7 +462,18 @@
             loadDevices(document.getElementById("device-search").value);
         }
     });
-    document.getElementById("new-device-button").addEventListener("click", openNewDevice);
+    document.getElementById("new-device-button").addEventListener("click", function () {
+        openNewDevice("");
+    });
+    deviceForm.elements.setupMethod.addEventListener("change", updateSetupFields);
+    document.getElementById("scan-qr-button").addEventListener("click", function () {
+        if (!window.IPTVAdmin || !window.IPTVAdmin.scanQr) {
+            showQrScanMessage("A leitura por câmera está disponível no app Android de administração.", true);
+            return;
+        }
+        showQrScanMessage("Aponte a câmera para o QR code da conta IPTV.", false);
+        window.IPTVAdmin.scanQr();
+    });
     document.getElementById("close-device-dialog").addEventListener("click", function () {
         deviceDialog.close();
     });
@@ -318,11 +481,19 @@
     deviceForm.addEventListener("submit", function (event) {
         event.preventDefault();
         var formData = new FormData(deviceForm);
+        var setupMethod = String(formData.get("setupMethod") || "");
+        if (setupMethod === "qr") {
+            document.getElementById("device-form-error").textContent = "Leia um QR code antes de salvar.";
+            return;
+        }
         var payload = {
             deviceId: String(formData.get("deviceId") || "").trim(),
             name: String(formData.get("name") || "").trim(),
+            configurationType: setupMethod === "m3u" ? "m3u" : "xtream",
             username: String(formData.get("username") || "").trim(),
             password: String(formData.get("password") || ""),
+            providerUrl: String(formData.get("providerUrl") || "").trim(),
+            playlistUrl: String(formData.get("playlistUrl") || "").trim(),
             expiresOn: String(formData.get("expiresOn") || ""),
             enabled: deviceForm.elements.enabled.checked,
             amount: String(formData.get("amount") || ""),
@@ -400,6 +571,11 @@
         }
         csrfToken = result.csrfToken;
         showAdmin();
+        window.setInterval(function () {
+            if (activePage === "devices") {
+                loadDevices(document.getElementById("device-search").value);
+            }
+        }, 30000);
     }).catch(function (error) {
         showLogin(error.message);
     });

@@ -11,6 +11,25 @@ CREATE TABLE IF NOT EXISTS app_devices (
     KEY idx_app_devices_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS app_device_registrations (
+    device_id CHAR(36) NOT NULL PRIMARY KEY,
+    app_version VARCHAR(32) NOT NULL DEFAULT '',
+    first_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_app_device_registrations_last_seen (last_seen)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_device_configurations (
+    device_id CHAR(36) NOT NULL PRIMARY KEY,
+    configuration_type VARCHAR(16) NOT NULL DEFAULT 'xtream',
+    provider_url VARCHAR(2048) NOT NULL DEFAULT '',
+    playlist_url_encrypted TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_app_device_configurations_device
+        FOREIGN KEY (device_id) REFERENCES app_devices (device_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS app_settings (
     setting_key VARCHAR(64) NOT NULL PRIMARY KEY,
     setting_value TEXT NOT NULL,
