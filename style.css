@@ -433,6 +433,12 @@ h2 {
     gap: 14px;
 }
 
+.brand-logo {
+    display: block;
+    width: clamp(148px, 19vw, 204px);
+    height: auto;
+}
+
 .brand-mark {
     display: flex;
     width: 74px;
@@ -604,6 +610,10 @@ h2 {
 
 .tile-series {
     background: linear-gradient(112deg, #9739b7 0%, #3a9ed0 100%);
+}
+
+.refresh-page-button {
+    gap: 7px;
 }
 
 .tile-catchup,
@@ -900,6 +910,10 @@ h2 {
     .brand-lockup {
         flex: 0 0 auto;
         gap: 10px;
+    }
+
+    .brand-logo {
+        width: clamp(135px, 25vw, 180px);
     }
 
     .brand-mark {
@@ -2875,11 +2889,63 @@ input {
 }
 
 .dashboard-right {
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.1fr) minmax(0, 0.72fr);
 }
 
 .dashboard-utility-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.tile-configuration {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: 12px;
+    background: linear-gradient(135deg, #247cbd 0%, #3158b8 55%, #5a42c8 100%);
+}
+
+.configuration-icon {
+    font-size: 74px;
+    line-height: 1;
+}
+
+.device-settings-screen {
     display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-top: 14px;
+}
+
+.device-settings-screen.is-visible {
+    display: flex;
+}
+
+.device-settings-screen .section-heading {
+    margin-bottom: 16px;
+}
+
+.device-settings-screen .device-status-card {
+    width: 100%;
+    max-width: 820px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+    margin: auto;
+    padding: 24px;
+}
+
+.device-settings-screen .device-status-title {
+    font-size: 24px;
+}
+
+.device-settings-screen .device-status-message {
+    font-size: 16px;
+}
+
+.device-settings-screen .device-status-actions {
+    justify-content: flex-start;
 }
 
 .device-status-card {
@@ -2929,6 +2995,28 @@ input {
     color: #d2deed;
     font-size: 14px;
     line-height: 1.4;
+}
+
+.list-expiry-status {
+    margin: 0 0 8px;
+    color: #b9cbe0;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.list-expiry-status.is-pending,
+.list-expiry-status.is-unknown {
+    color: #ffc16b;
+}
+
+.list-expiry-status.is-active {
+    color: #62dfb1;
+}
+
+.list-expiry-status.is-expired,
+.list-expiry-status.is-error {
+    color: #ff9696;
 }
 
 .device-status-meta {

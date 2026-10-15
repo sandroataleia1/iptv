@@ -23,7 +23,7 @@ android {
 
 tasks.register("prepareWebAssets", Copy) {
     from(rootProject.projectDir.parentFile) {
-        include "index.html", "style.css", "app.js", "app-config.js", "icon.png"
+        include "index.html", "style.css", "app.js", "app-config.js", "icon.png", "brand-logo.svg"
     }
     into("$buildDir/generated/webAssets/www")
 }

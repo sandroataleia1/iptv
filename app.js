@@ -24,12 +24,14 @@
     var playerControlsTimer = null;
     var focusedIndex = 0;
     var dashboardFocusedIndex = 0;
+    var deviceSettingsFocusedIndex = 0;
     var categoryFocusIndex = 0;
     var selectedGroupIndex = 0;
     var liveFocusPane = "categories";
     var previewedChannelIndex = null;
     var previousFocusedElement = null;
     var channelsOpen = false;
+    var deviceSettingsOpen = false;
     var appAccessAllowed = false;
     var deviceIdentifier = "";
     var pendingRelease = null;
@@ -37,6 +39,8 @@
     var channelList = document.getElementById("channel-list");
     var channelsTitle = document.getElementById("channels-title");
     var homeDashboard = document.getElementById("home-dashboard");
+    var deviceSettingsScreen = document.getElementById("device-settings-screen");
+    var deviceSettingsBackButton = document.getElementById("device-settings-back");
     var channelSection = document.getElementById("channel-section");
     var dashboardFeedback = document.getElementById("dashboard-feedback");
     var statusElement = document.getElementById("connection-status");
@@ -64,6 +68,7 @@
     var deviceStatusCard = document.getElementById("device-status-card");
     var deviceStatusTitle = document.getElementById("device-status-title");
     var deviceStatusMessage = document.getElementById("device-status-message");
+    var listExpiryStatus = document.getElementById("list-expiry-status");
     var deviceIdLabel = document.getElementById("device-id-label");
     var appReleaseLabel = document.getElementById("app-release-label");
     var copyDeviceIdButton = document.getElementById("copy-device-id");
@@ -94,7 +99,11 @@
     var seriesEpisodeList = document.getElementById("series-episode-list");
 
     function getDashboardTiles() {
-        return homeDashboard.getElementsByClassName("dashboard-tile");
+        return homeDashboard.querySelectorAll(".dashboard-tile, .dashboard-focus-target");
+    }
+
+    function getDeviceSettingsControls() {
+        return deviceSettingsScreen.querySelectorAll("button:not([hidden]):not(:disabled)");
     }
 
     function getCategoryButtons() {
@@ -161,6 +170,25 @@
         }
         dashboardFocusedIndex = index;
         tiles[index].focus();
+    }
+
+    function focusDeviceSettingsControl(index) {
+        var controls = getDeviceSettingsControls();
+        if (index < 0 || index >= controls.length) {
+            return;
+        }
+        deviceSettingsFocusedIndex = index;
+        controls[index].focus();
+    }
+
+    function moveDeviceSettingsFocus(keyCode) {
+        var controls = getDeviceSettingsControls();
+        var direction = (keyCode === 37 || keyCode === 38) ? -1 : 1;
+        if (!controls.length) {
+            return;
+        }
+        deviceSettingsFocusedIndex = (deviceSettingsFocusedIndex + direction + controls.length) % controls.length;
+        focusDeviceSettingsControl(deviceSettingsFocusedIndex);
     }
 
     function setAccountName(username) {
@@ -365,16 +393,42 @@
             months[current.getMonth()] + " " + current.getFullYear();
     }
 
+    function setAppOrientation(orientation) {
+        if (window.IPTVAndroid && window.IPTVAndroid.setScreenOrientation) {
+            window.IPTVAndroid.setScreenOrientation(orientation);
+        }
+    }
+
     function showDashboard() {
+        setAppOrientation("portrait");
         channelsOpen = false;
+        deviceSettingsOpen = false;
         setCatalogLoading(false);
         clearPreview();
         document.body.className = "";
         homeDashboard.className = "home-dashboard";
         homeDashboard.setAttribute("aria-hidden", "false");
+        deviceSettingsScreen.className = "device-settings-screen";
+        deviceSettingsScreen.setAttribute("aria-hidden", "true");
         channelSection.className = "channel-section";
         channelSection.setAttribute("aria-hidden", "true");
         focusDashboardTile(dashboardFocusedIndex);
+    }
+
+    function openDeviceSettings() {
+        setAppOrientation("landscape");
+        channelsOpen = false;
+        deviceSettingsOpen = true;
+        setCatalogLoading(false);
+        clearPreview();
+        document.body.className = "";
+        homeDashboard.className = "home-dashboard is-hidden";
+        homeDashboard.setAttribute("aria-hidden", "true");
+        deviceSettingsScreen.className = "device-settings-screen is-visible";
+        deviceSettingsScreen.setAttribute("aria-hidden", "false");
+        channelSection.className = "channel-section";
+        channelSection.setAttribute("aria-hidden", "true");
+        focusDeviceSettingsControl(0);
     }
 
     function openChannels() {
@@ -383,6 +437,7 @@
             focusDashboardTile(dashboardFocusedIndex);
             return;
         }
+        setAppOrientation("landscape");
         if (catalogMode !== "live") {
             channels = liveChannels;
             channelGroups = liveChannelGroups;
@@ -393,9 +448,12 @@
             renderChannels();
         }
         channelsOpen = true;
+        deviceSettingsOpen = false;
         document.body.className = "live-mode";
         homeDashboard.className = "home-dashboard is-hidden";
         homeDashboard.setAttribute("aria-hidden", "true");
+        deviceSettingsScreen.className = "device-settings-screen";
+        deviceSettingsScreen.setAttribute("aria-hidden", "true");
         channelSection.className = "channel-section is-visible";
         channelSection.setAttribute("aria-hidden", "false");
         if (channelGroups.length) {
@@ -416,6 +474,10 @@
             "update-unavailable": "O link para baixar o aplicativo não está configurado.",
             "cache-error": "Lista atualizada, mas o cache não pôde ser salvo neste aparelho."
         };
+        if (deviceSettingsOpen && messages[action]) {
+            deviceStatusMessage.textContent = messages[action];
+            return;
+        }
         dashboardFeedback.textContent = messages[action] || "Seção indisponível.";
         if (dashboardFeedbackTimer) {
             window.clearTimeout(dashboardFeedbackTimer);
@@ -490,6 +552,10 @@
                         loadVodCatalog("movies");
                     } else if (action === "series") {
                         loadVodCatalog("series");
+                    } else if (action === "configuration") {
+                        openDeviceSettings();
+                    } else if (action === "refresh") {
+                        window.location.reload();
                     }
                 };
             }(tiles[index]));
@@ -628,6 +694,7 @@
     }
 
     function showCatalogView(title) {
+        setAppOrientation("landscape");
         channelsOpen = true;
         document.body.className = "live-mode vod-mode";
         homeDashboard.className = "home-dashboard is-hidden";
@@ -1109,7 +1176,89 @@
 
     function saveManagedAccount(account) {
         managedAccount = account;
-        setAccountName(account.username || "Lista M3U");
+        setAccountName(account.username);
+    }
+
+    function updateListExpiryStatus(message, stateClass) {
+        listExpiryStatus.textContent = message;
+        listExpiryStatus.className = "list-expiry-status" + (stateClass ? " " + stateClass : "");
+    }
+
+    function checkProviderExpiry(account) {
+        var request = new XMLHttpRequest();
+        var expiryValue;
+        var expiryTimestamp;
+        var expiryDate;
+        var expiryLabel;
+
+        updateListExpiryStatus("Consultando validade da lista no provedor...", "is-pending");
+        request.onreadystatechange = function () {
+            var response;
+            var userInfo;
+            var statusText;
+            var auth;
+            if (request.readyState !== 4) {
+                return;
+            }
+            if (request.status < 200 || request.status >= 300) {
+                updateListExpiryStatus("Não foi possível consultar a validade da lista no provedor.", "is-unknown");
+                return;
+            }
+            try {
+                response = JSON.parse(request.responseText);
+            } catch (error) {
+                updateListExpiryStatus("O provedor retornou uma resposta inválida para a validade da lista.", "is-unknown");
+                return;
+            }
+            userInfo = response && response.user_info;
+            if (!userInfo || typeof userInfo !== "object") {
+                updateListExpiryStatus("O provedor não informou a validade desta lista.", "is-unknown");
+                return;
+            }
+
+            statusText = String(userInfo.status || "").toLowerCase();
+            auth = userInfo.auth;
+            if (statusText.indexOf("expir") !== -1 || statusText.indexOf("venc") !== -1) {
+                updateListExpiryStatus("A conta IPTV está vencida segundo o provedor.", "is-expired");
+                return;
+            }
+            if (auth === 0 || auth === "0" || auth === false || statusText.indexOf("disabled") !== -1 ||
+                    statusText.indexOf("banned") !== -1 || statusText.indexOf("desativ") !== -1) {
+                updateListExpiryStatus("A conta IPTV está inválida ou desativada no provedor.", "is-error");
+                return;
+            }
+
+            expiryValue = userInfo.exp_date;
+            expiryTimestamp = Number(expiryValue);
+            if (expiryValue !== null && expiryValue !== undefined && expiryValue !== "" &&
+                    expiryValue !== "0" && expiryTimestamp > 0 && isFinite(expiryTimestamp)) {
+                expiryDate = new Date(expiryTimestamp * 1000);
+                if (!isFinite(expiryDate.getTime())) {
+                    updateListExpiryStatus("O provedor informou uma data de vencimento inválida.", "is-unknown");
+                    return;
+                }
+                expiryLabel = new Intl.DateTimeFormat("pt-BR").format(expiryDate);
+                if (expiryTimestamp <= Math.floor(new Date().getTime() / 1000)) {
+                    updateListExpiryStatus("Lista IPTV vencida em " + expiryLabel + ".", "is-expired");
+                } else {
+                    updateListExpiryStatus("Lista IPTV válida até " + expiryLabel + ".", "is-active");
+                }
+                return;
+            }
+
+            updateListExpiryStatus("O provedor não informou uma data de vencimento.", "is-unknown");
+        };
+        request.onerror = function () {
+            updateListExpiryStatus("Não foi possível acessar o provedor para consultar a validade da lista.", "is-unknown");
+        };
+        request.ontimeout = function () {
+            updateListExpiryStatus("O provedor demorou para informar a validade da lista.", "is-unknown");
+        };
+        request.open("GET", account.server + "/player_api.php?username=" +
+            encodeURIComponent(account.username) + "&password=" +
+            encodeURIComponent(account.password), true);
+        request.timeout = 15000;
+        request.send(null);
     }
 
     function copyDeviceText(text, message) {
@@ -1181,19 +1330,17 @@
 
         if (data.status === "active") {
             title = "Acesso ativo";
-            message = "Lista verificada pelo painel. Atualizando os canais...";
+            message = "Aparelho ativo no painel. Consultando a conta IPTV e atualizando os canais...";
             stateClass = "is-active";
             account = {
                 server: (data.providerUrl || "").replace(/\/+$/, ""),
                 username: data.account ? data.account.username : "",
-                password: data.account ? data.account.password : "",
-                configurationType: data.configurationType || "xtream",
-                playlistUrl: data.playlistUrl || ""
+                password: data.account ? data.account.password : ""
             };
-            if ((account.configurationType === "m3u" && account.playlistUrl) ||
-                    (account.server && account.username && account.password)) {
+            if (account.server && account.username && account.password) {
                 refreshChannelsButton.hidden = false;
                 saveManagedAccount(account);
+                checkProviderExpiry(account);
                 loadManagedPlaylist(account);
             } else {
                 appAccessAllowed = false;
@@ -1201,12 +1348,14 @@
                 setRefreshChannelsLoading(false);
                 message = "O cadastro está ativo, mas falta configurar o servidor ou a lista no painel.";
                 stateClass = "is-error";
+                updateListExpiryStatus("Configure servidor, usuário e senha para consultar a validade da lista.", "is-unknown");
             }
         } else {
             refreshChannelsButton.hidden = true;
             setRefreshChannelsLoading(false);
             setAccountName("");
             managedAccount = null;
+            updateListExpiryStatus("A validade da lista será consultada após configurar o aparelho.", "");
             if (data.status === "blocked") {
                 title = "Aparelho bloqueado";
                 message = data.message || "O acesso foi bloqueado pelo administrador.";
@@ -1236,6 +1385,7 @@
         deviceIdLabel.textContent = "ID: " + deviceIdentifier;
         retryDeviceCheckButton.hidden = true;
         setRefreshChannelsLoading(true);
+        updateListExpiryStatus("Aguardando consulta ao provedor...", "is-pending");
         showDeviceStatus("Verificando aplicativo...", "Conectando ao painel e atualizando a lista.", "");
 
         if (!configuration.apiUrl || !/^https:\/\//i.test(configuration.apiUrl)) {
@@ -1289,11 +1439,6 @@
         var index;
         var streamId;
         var server = account.server ? account.server.replace(/\/+$/, "") : "";
-
-        if (account.configurationType === "m3u") {
-            loadM3uPlaylist(account.playlistUrl);
-            return;
-        }
 
         statusElement.textContent = "Atualizando canais...";
         request.onreadystatechange = function () {
@@ -1352,7 +1497,7 @@
                 rememberLivePlaylist();
                 channelsTitle.textContent = "Live TV";
                 statusElement.textContent = "Lista atualizada pelo painel";
-                deviceStatusMessage.textContent = "Lista de canais atualizada pelo painel.";
+                deviceStatusMessage.textContent = "Canais da conta IPTV atualizados.";
                 setRefreshChannelsLoading(false);
                 renderCategories();
                 renderChannels();
@@ -1373,115 +1518,6 @@
             setRefreshChannelsLoading(false);
             showDashboardNotice("catalog-error");
         };
-        request.send(null);
-    }
-
-    function loadM3uPlaylist(playlistUrl) {
-        var request = new XMLHttpRequest();
-
-        function showPlaylistError(message) {
-            statusElement.textContent = message;
-            deviceStatusMessage.textContent = message;
-            setRefreshChannelsLoading(false);
-            showDashboardNotice("catalog-error");
-        }
-
-        request.onreadystatechange = function () {
-            var lines;
-            var loadedChannels = [];
-            var metadata = null;
-            var line;
-            var attributes;
-            var channelName;
-            var characterIndex;
-            var commaIndex;
-            var insideQuotes;
-            var character;
-            var groupName;
-            var streamUrl;
-            var index;
-            if (request.readyState !== 4) {
-                return;
-            }
-            if (request.status < 200 || request.status >= 300) {
-                showPlaylistError("Não foi possível baixar a lista M3U. Confira o link e a conexão do provedor.");
-                return;
-            }
-            lines = request.responseText.split(/\r?\n/);
-            for (index = 0; index < lines.length; index += 1) {
-                line = lines[index].trim();
-                if (line.indexOf("#EXTINF:") === 0) {
-                    commaIndex = -1;
-                    insideQuotes = false;
-                    for (characterIndex = 0; characterIndex < line.length; characterIndex += 1) {
-                        character = line.charAt(characterIndex);
-                        if (character === "\"") {
-                            insideQuotes = !insideQuotes;
-                        } else if (character === "," && !insideQuotes) {
-                            commaIndex = characterIndex;
-                            break;
-                        }
-                    }
-                    channelName = commaIndex === -1 ? "" : line.substring(commaIndex + 1).trim();
-                    attributes = {};
-                    line.replace(/([a-zA-Z0-9_-]+)=["']([^"']*)["']/g, function (match, key, value) {
-                        attributes[key.toLowerCase()] = value;
-                        return match;
-                    });
-                    groupName = attributes["group-title"] || "Outros";
-                    metadata = {
-                        name: channelName || attributes["tvg-name"] || "Canal",
-                        logo: attributes["tvg-logo"] || "",
-                        categoryName: groupName,
-                        categoryId: groupName
-                    };
-                } else if (line && line.charAt(0) !== "#") {
-                    if (!metadata) {
-                        continue;
-                    }
-                    try {
-                        streamUrl = new URL(line, playlistUrl);
-                    } catch (error) {
-                        metadata = null;
-                        continue;
-                    }
-                    if (streamUrl.protocol === "http:" || streamUrl.protocol === "https:") {
-                        loadedChannels.push({
-                            name: metadata.name,
-                            logo: metadata.logo,
-                            categoryName: metadata.categoryName,
-                            categoryId: metadata.categoryId,
-                            url: streamUrl.href
-                        });
-                    }
-                    metadata = null;
-                }
-            }
-            if (!loadedChannels.length) {
-                showPlaylistError("A lista M3U não contém canais compatíveis.");
-                return;
-            }
-            channels = loadedChannels;
-            catalogMode = "live";
-            selectedGroupIndex = 0;
-            buildChannelGroups([]);
-            rememberLivePlaylist();
-            channelsTitle.textContent = "Live TV";
-            statusElement.textContent = "Lista M3U atualizada";
-            deviceStatusMessage.textContent = "Canais atualizados pela lista M3U.";
-            setRefreshChannelsLoading(false);
-            renderCategories();
-            renderChannels();
-        };
-        request.onerror = function () {
-            showPlaylistError("Não foi possível acessar o servidor da lista M3U.");
-        };
-        request.ontimeout = function () {
-            showPlaylistError("O servidor da lista M3U demorou para responder. Tente atualizar novamente.");
-        };
-        statusElement.textContent = "Baixando lista M3U...";
-        request.open("GET", playlistUrl, true);
-        request.timeout = 30000;
         request.send(null);
     }
 
@@ -1910,6 +1946,9 @@
             } else if (channelsOpen) {
                 event.preventDefault();
                 showDashboard();
+            } else if (deviceSettingsOpen) {
+                event.preventDefault();
+                showDashboard();
             }
             return;
         }
@@ -1923,6 +1962,17 @@
             if (keyCode >= 37 && keyCode <= 40) {
                 event.preventDefault();
                 moveDetailFocus(keyCode);
+            }
+            return;
+        }
+
+        if (deviceSettingsOpen) {
+            if (keyCode >= 37 && keyCode <= 40) {
+                event.preventDefault();
+                moveDeviceSettingsFocus(keyCode);
+            } else if (keyCode === 13) {
+                event.preventDefault();
+                getDeviceSettingsControls()[deviceSettingsFocusedIndex].click();
             }
             return;
         }
@@ -1982,6 +2032,22 @@
         }
     };
     backHomeButton.onclick = showDashboard;
+    deviceSettingsBackButton.onclick = showDashboard;
+    (function bindDeviceSettingsFocus() {
+        var controls = deviceSettingsScreen.getElementsByTagName("button");
+        var index;
+        for (index = 0; index < controls.length; index += 1) {
+            controls[index].onfocus = (function (controlIndex) {
+                return function () {
+                    var visibleControls = getDeviceSettingsControls();
+                    var visibleIndex = Array.prototype.indexOf.call(visibleControls, controls[controlIndex]);
+                    if (visibleIndex !== -1) {
+                        deviceSettingsFocusedIndex = visibleIndex;
+                    }
+                };
+            }(index));
+        }
+    }());
     copyDeviceIdButton.onclick = function () {
         copyDeviceText(deviceIdentifier, "Identificador do app copiado.");
     };
@@ -2008,6 +2074,9 @@
         if (previewedChannelIndex !== null) {
             playChannel(previewedChannelIndex);
         }
+    };
+    document.getElementById("refresh-app-page").onclick = function () {
+        window.location.reload();
     };
     miniPlayerButton.onfocus = function () {
         liveFocusPane = "preview";
@@ -2064,6 +2133,7 @@
     window.setInterval(updateClock, 60000);
     deviceIdentifier = getDeviceIdentifier();
     deviceIdLabel.textContent = "ID: " + deviceIdentifier;
+    setAppOrientation("portrait");
     setAccountName("");
     try {
         window.localStorage.removeItem("iptvLabAccount");

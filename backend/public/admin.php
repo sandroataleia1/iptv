@@ -122,25 +122,9 @@ header('Cache-Control: no-store');
             <div class="dialog-heading full-width"><div><p class="eyebrow">APARELHO</p><h2 id="device-dialog-title">Adicionar app</h2></div><button id="close-device-dialog" class="icon-button" type="button" aria-label="Fechar">×</button></div>
             <label class="full-width">Identificador exclusivo<input name="deviceId" required pattern="[0-9a-fA-F-]{36}" placeholder="UUID exibido no app" autocomplete="off"></label>
             <label>Nome do aparelho<input name="name" required maxlength="120" placeholder="Cliente / dispositivo"></label>
-            <label class="full-width">Como configurar este app?
-                <select name="setupMethod" required>
-                    <option value="qr">Ler QR code do provedor</option>
-                    <option value="credentials">Usuário e senha</option>
-                    <option value="m3u">Link M3U</option>
-                </select>
-            </label>
-            <div id="qr-setup-fields" class="full-width setup-fields">
-                <button id="scan-qr-button" class="button secondary" type="button">Escanear QR code</button>
-                <p id="qr-scan-message" class="field-hint" role="status">O QR code deve conter uma URL M3U ou URL do servidor, usuário e senha.</p>
-            </div>
-            <div id="credentials-setup-fields" class="full-width form-grid setup-fields" hidden>
-                <label class="full-width">URL do servidor IPTV<input name="providerUrl" type="url" maxlength="2048" placeholder="Usa a URL padrão das configurações se ficar em branco"></label>
-                <label>Usuário IPTV<input name="username" maxlength="190" autocomplete="off"></label>
-                <label>Senha IPTV<input name="password" type="password" autocomplete="new-password"><small>Em uma edição, deixe em branco para manter a senha atual.</small></label>
-            </div>
-            <div id="m3u-setup-fields" class="full-width setup-fields" hidden>
-                <label>Link da lista M3U<input name="playlistUrl" type="url" maxlength="2048" placeholder="https://servidor/lista.m3u" autocomplete="off"></label>
-            </div>
+            <label class="full-width">URL do servidor IPTV<input name="providerUrl" type="url" maxlength="2048" placeholder="Usa a URL padrão das configurações se ficar em branco"></label>
+            <label>Usuário IPTV<input name="username" required maxlength="190" autocomplete="off"></label>
+            <label>Senha IPTV<input name="password" type="password" autocomplete="new-password"><small>Em uma edição, deixe em branco para manter a senha atual.</small></label>
             <label class="enabled-toggle full-width"><input name="enabled" type="checkbox" checked> Acesso liberado</label>
             <p id="device-form-error" class="form-error full-width" role="status"></p>
             <button class="button primary full-width" type="submit">Salvar aparelho</button>

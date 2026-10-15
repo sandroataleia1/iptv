@@ -5,6 +5,7 @@
     <application
         android:allowBackup="false"
         android:hardwareAccelerated="true"
+        android:icon="@drawable/ic_launcher"
         android:label="IPTV Lab"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
@@ -12,7 +13,8 @@
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

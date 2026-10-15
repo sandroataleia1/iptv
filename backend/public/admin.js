@@ -231,9 +231,8 @@
         deviceForm.dataset.hasPassword = "false";
         document.getElementById("device-dialog-title").textContent = deviceId ? "Configurar novo app" : "Adicionar app";
         document.getElementById("device-form-error").textContent = "";
-        document.getElementById("qr-scan-message").textContent =
-            "O QR code deve conter uma URL M3U ou URL do servidor, usuário e senha.";
-        updateSetupFields();
+        deviceForm.elements.username.required = true;
+        deviceForm.elements.password.required = true;
         deviceDialog.showModal();
     }
 
@@ -247,125 +246,17 @@
             deviceForm.elements.name.value = device.display_name;
             deviceForm.elements.username.value = device.username;
             deviceForm.elements.password.value = "";
-            deviceForm.elements.playlistUrl.value = device.playlist_url || "";
             deviceForm.elements.providerUrl.value = device.provider_url || "";
-            deviceForm.elements.setupMethod.value = device.configuration_type === "m3u" ? "m3u" : "credentials";
             deviceFormHasPassword = !!device.has_password;
             deviceForm.dataset.hasPassword = deviceFormHasPassword ? "true" : "false";
             deviceForm.elements.enabled.checked = Number(device.enabled) === 1;
             document.getElementById("device-dialog-title").textContent = "Configurar app";
             document.getElementById("device-form-error").textContent = "";
-            updateSetupFields();
+            deviceForm.elements.username.required = true;
+            deviceForm.elements.password.required = !deviceFormHasPassword;
             deviceDialog.showModal();
         }).catch(showError);
     }
-
-    function updateSetupFields() {
-        var method = deviceForm.elements.setupMethod.value;
-        var credentials = method === "credentials";
-        document.getElementById("qr-setup-fields").hidden = method !== "qr";
-        document.getElementById("credentials-setup-fields").hidden = !credentials;
-        document.getElementById("m3u-setup-fields").hidden = method !== "m3u";
-        if (!credentials) {
-            deviceForm.elements.providerUrl.value = "";
-        }
-        if (method !== "m3u") {
-            deviceForm.elements.playlistUrl.value = "";
-        }
-        deviceForm.elements.username.required = credentials;
-        deviceForm.elements.password.required = credentials && !deviceFormHasPassword;
-        deviceForm.elements.playlistUrl.required = method === "m3u";
-    }
-
-    function applyQrConfiguration(rawValue) {
-        var configuration = null;
-        var qrText = String(rawValue || "").trim();
-        var url;
-        var username;
-        var password;
-        var playlistUrl;
-        var server;
-        try {
-            configuration = JSON.parse(qrText);
-        } catch (error) {
-            configuration = null;
-        }
-        if (configuration && typeof configuration === "object") {
-            playlistUrl = configuration.playlistUrl || configuration.playlist_url ||
-                configuration.m3u || configuration.url || "";
-            username = configuration.username || configuration.user || "";
-            password = configuration.password || configuration.pass || "";
-            server = configuration.server || configuration.serverUrl || configuration.server_url ||
-                configuration.providerUrl || configuration.host || "";
-            if (server) {
-                try {
-                    server = new URL(server).origin;
-                } catch (error) {
-                    server = "";
-                }
-            }
-            if (!server && playlistUrl && username && password) {
-                try {
-                    server = new URL(playlistUrl).origin;
-                } catch (error) {
-                    server = "";
-                }
-            }
-            if (playlistUrl && (!username || !password ||
-                    /\.m3u8?(?:$|[?#])/i.test(playlistUrl) || configuration.type === "m3u")) {
-                deviceForm.elements.playlistUrl.value = playlistUrl;
-                deviceForm.elements.setupMethod.value = "m3u";
-            } else if (username && password && server) {
-                deviceForm.elements.username.value = username;
-                deviceForm.elements.password.value = password;
-                deviceForm.elements.providerUrl.value = server;
-                deviceForm.elements.setupMethod.value = "credentials";
-                deviceFormHasPassword = false;
-            } else {
-                showQrScanMessage("O QR code não contém um link M3U ou servidor, usuário e senha reconhecidos.", true);
-                return;
-            }
-        } else {
-            try {
-                url = new URL(qrText);
-            } catch (error) {
-                showQrScanMessage("O QR code não contém uma URL válida.", true);
-                return;
-            }
-            if (url.protocol !== "https:" && url.protocol !== "http:") {
-                showQrScanMessage("Use um QR code com endereço http:// ou https://.", true);
-                return;
-            }
-            username = url.searchParams.get("username") || url.searchParams.get("user") || "";
-            password = url.searchParams.get("password") || url.searchParams.get("pass") || "";
-            if (/\.m3u8?(?:$|[?#])/i.test(url.pathname) ||
-                    (url.pathname.toLowerCase().indexOf("get.php") !== -1 && url.searchParams.has("type"))) {
-                deviceForm.elements.playlistUrl.value = url.href;
-                deviceForm.elements.setupMethod.value = "m3u";
-            } else if (username && password) {
-                deviceForm.elements.username.value = username;
-                deviceForm.elements.password.value = password;
-                deviceForm.elements.providerUrl.value = url.origin;
-                deviceForm.elements.setupMethod.value = "credentials";
-                deviceFormHasPassword = false;
-            } else {
-                showQrScanMessage("O QR code precisa conter o link M3U ou servidor, usuário e senha IPTV.", true);
-                return;
-            }
-        }
-        updateSetupFields();
-        showQrScanMessage("QR code lido. Confira os dados e salve para configurar o aparelho.", false);
-    }
-
-    function showQrScanMessage(message, isError) {
-        var label = document.getElementById("qr-scan-message");
-        label.textContent = message;
-        label.className = "field-hint" + (isError ? " form-error" : "");
-    }
-
-    window.onQrScanned = function (value) {
-        applyQrConfiguration(value);
-    };
 
     document.getElementById("login-form").addEventListener("submit", function (event) {
         event.preventDefault();
@@ -405,15 +296,6 @@
     document.getElementById("new-device-button").addEventListener("click", function () {
         openNewDevice("");
     });
-    deviceForm.elements.setupMethod.addEventListener("change", updateSetupFields);
-    document.getElementById("scan-qr-button").addEventListener("click", function () {
-        if (!window.IPTVAdmin || !window.IPTVAdmin.scanQr) {
-            showQrScanMessage("A leitura por câmera está disponível no app Android de administração.", true);
-            return;
-        }
-        showQrScanMessage("Aponte a câmera para o QR code da conta IPTV.", false);
-        window.IPTVAdmin.scanQr();
-    });
     document.getElementById("close-device-dialog").addEventListener("click", function () {
         deviceDialog.close();
     });
@@ -421,19 +303,12 @@
     deviceForm.addEventListener("submit", function (event) {
         event.preventDefault();
         var formData = new FormData(deviceForm);
-        var setupMethod = String(formData.get("setupMethod") || "");
-        if (setupMethod === "qr") {
-            document.getElementById("device-form-error").textContent = "Leia um QR code antes de salvar.";
-            return;
-        }
         var payload = {
             deviceId: String(formData.get("deviceId") || "").trim(),
             name: String(formData.get("name") || "").trim(),
-            configurationType: setupMethod === "m3u" ? "m3u" : "xtream",
             username: String(formData.get("username") || "").trim(),
             password: String(formData.get("password") || ""),
             providerUrl: String(formData.get("providerUrl") || "").trim(),
-            playlistUrl: String(formData.get("playlistUrl") || "").trim(),
             enabled: deviceForm.elements.enabled.checked
         };
         document.getElementById("device-form-error").textContent = "";

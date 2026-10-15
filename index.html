@@ -10,10 +10,7 @@
     <main class="app-shell">
         <header class="topbar">
             <div class="brand-lockup">
-                <div class="brand-mark" aria-hidden="true">IPTV</div>
-                <div>
-                    <h1>IPTV <span>LAB</span></h1>
-                </div>
+                <img class="brand-logo" src="brand-logo.svg" alt="IPTV Lab">
             </div>
             <div class="topbar-meta">
                 <div class="date-time">
@@ -44,21 +41,49 @@
                             <span class="tile-title">SÉRIES</span>
                         </button>
                     </div>
+                    <div class="dashboard-utility-row">
+                        <button class="dashboard-tile tile-configuration" type="button" data-action="configuration" aria-label="Abrir configuração do aparelho">
+                            <span class="tile-icon configuration-icon" aria-hidden="true">&#9881;</span>
+                            <span class="tile-title">CONFIGURAR APP</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             <p id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite"></p>
+        </section>
+
+        <section id="device-settings-screen" class="device-settings-screen" aria-hidden="true" aria-labelledby="device-settings-title">
+            <div class="section-heading">
+                <div class="page-heading">
+                    <button id="device-settings-back" class="back-icon-button" type="button" aria-label="Voltar" title="Voltar">
+                        <span aria-hidden="true">&#8592;</span>
+                    </button>
+                    <h2 id="device-settings-title">Configurar app</h2>
+                </div>
+            </div>
             <section id="device-status-card" class="device-status-card" aria-live="polite" aria-label="Status do aparelho">
                 <div class="device-status-copy">
                     <p id="device-status-title" class="device-status-title">Verificando aplicativo...</p>
                     <p id="device-status-message" class="device-status-message">Conectando ao painel.</p>
+                    <p id="list-expiry-status" class="list-expiry-status" role="status" aria-live="polite">
+                        Validade da lista: aguardando consulta ao provedor.
+                    </p>
                     <div class="device-status-meta">
                         <span id="device-id-label" class="device-id-label">ID: gerando...</span>
                     </div>
                     <p id="app-release-label" class="app-release-label" hidden></p>
                 </div>
                 <div class="device-status-actions">
+                    <button id="refresh-app-page" class="device-action-button refresh-page-button" type="button" data-action="refresh" aria-label="Atualizar a página do app">
+                        <span aria-hidden="true">&#8635;</span>
+                        <span>Atualizar página</span>
+                    </button>
                     <button id="copy-device-id" class="device-action-button" type="button">Copiar ID</button>
-                    <button id="update-app-button" class="device-action-button update-app-button" type="button" hidden>Atualizar app</button>
+                    <button id="refresh-channels-button" class="device-action-button" type="button" hidden>Atualizar canais</button>
+                    <button id="update-app-button" class="device-action-button update-app-button" type="button" aria-label="Baixar ou atualizar o app">
+                        <span id="update-app-label">Baixar / atualizar app</span>
+                        <span id="update-app-indicator" class="update-app-indicator" aria-hidden="true"></span>
+                    </button>
                     <button id="retry-device-check" class="device-action-button" type="button" hidden>Tentar novamente</button>
                 </div>
             </section>

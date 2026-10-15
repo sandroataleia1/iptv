@@ -3,6 +3,7 @@ package com.iptv.lab;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.content.pm.ActivityInfo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.graphics.Color;
@@ -36,6 +37,17 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void updateApk(String url) {
             runOnUiThread(() -> startApkDownload(url));
+        }
+
+        @JavascriptInterface
+        public void setScreenOrientation(String orientation) {
+            runOnUiThread(() -> {
+                if ("portrait".equals(orientation)) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                } else if ("landscape".equals(orientation)) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                }
+            });
         }
     }
 
@@ -110,7 +122,8 @@ public class MainActivity extends Activity {
         Uri uri = Uri.parse(url);
         if (!"https".equalsIgnoreCase(uri.getScheme()) ||
                 !"iptv.esis.com.br".equalsIgnoreCase(uri.getHost()) ||
-                !"/download.php".equals(uri.getPath())) {
+                !("/download.php".equals(uri.getPath()) ||
+                        "/public-download.php".equals(uri.getPath()))) {
             Toast.makeText(this, "Endereço de atualização inválido.", Toast.LENGTH_LONG).show();
             return;
         }

@@ -82,9 +82,6 @@ tr:last-child td { border-bottom: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .full-width { grid-column: 1 / -1; }
 .field-hint { font-size: 13px; }
-.setup-fields { display: grid; gap: 12px; }
-.setup-fields > p { margin: 0; }
-.setup-fields .form-grid { padding: 0; }
 .release-summary { margin: 18px 0; padding: 13px; border: 1px solid var(--line); border-radius: 6px; color: #c8d7e8; line-height: 1.5; }
 .public-download { display: grid; gap: 10px; margin: 0 0 22px; }
 .public-download-controls { display: flex; align-items: center; gap: 9px; }

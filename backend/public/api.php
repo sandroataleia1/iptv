@@ -43,7 +43,7 @@ try {
         ));
         $statement = panel_db()->prepare(
             'SELECT d.device_id, d.display_name, d.username, d.password_encrypted, d.enabled, ' .
-            'c.configuration_type, c.provider_url, c.playlist_url_encrypted ' .
+            'c.provider_url ' .
             'FROM app_devices d LEFT JOIN app_device_configurations c ON c.device_id = d.device_id ' .
             'WHERE d.device_id = ?'
         );
@@ -89,19 +89,14 @@ try {
         }
 
         if ($status === 'active') {
-            $configurationType = $device['configuration_type'] ?: 'xtream';
-            $response['configurationType'] = $configurationType;
-            if ($configurationType === 'm3u') {
-                $response['playlistUrl'] = panel_decrypt_password($device['playlist_url_encrypted']);
-            } else {
-                if (!empty($device['provider_url'])) {
-                    $response['providerUrl'] = $device['provider_url'];
-                }
-                $response['account'] = array(
-                    'username' => $device['username'],
-                    'password' => panel_decrypt_password($device['password_encrypted']),
-                );
+            if (!empty($device['provider_url'])) {
+                $response['providerUrl'] = $device['provider_url'];
             }
+            $response['account'] = array(
+                'username' => $device['username'],
+                'password' => $device['password_encrypted'] !== '' ?
+                    panel_decrypt_password($device['password_encrypted']) : '',
+            );
         }
 
         panel_json(200, $response);
@@ -204,7 +199,7 @@ try {
         }
         $statement = panel_db()->prepare(
             'SELECT d.device_id, d.display_name, d.username, d.password_encrypted, d.enabled, ' .
-            'c.configuration_type, c.provider_url, c.playlist_url_encrypted ' .
+            'c.provider_url ' .
             'FROM app_devices d LEFT JOIN app_device_configurations c ON c.device_id = d.device_id ' .
             'WHERE d.device_id = ?'
         );
@@ -213,41 +208,29 @@ try {
         if (!$device) {
             panel_json(404, array('error' => 'Aparelho não encontrado.'));
         }
-        $device['configuration_type'] = $device['configuration_type'] ?: 'xtream';
         $device['provider_url'] = $device['provider_url'] ?: '';
         $device['has_password'] = $device['password_encrypted'] !== '';
         unset($device['password_encrypted']);
-        $device['playlist_url'] = $device['configuration_type'] === 'm3u' ?
-            panel_decrypt_password($device['playlist_url_encrypted']) : '';
-        unset($device['playlist_url_encrypted']);
         panel_json(200, array('device' => $device));
     }
 
     if ($action === 'admin_device_save') {
         $deviceId = strtolower(trim((string) ($data['deviceId'] ?? '')));
         $name = trim((string) ($data['name'] ?? ''));
-        $configurationType = (string) ($data['configurationType'] ?? 'xtream');
         $providerUrl = rtrim(trim((string) ($data['providerUrl'] ?? '')), '/');
         $username = trim((string) ($data['username'] ?? ''));
         $password = (string) ($data['password'] ?? '');
-        $playlistUrl = trim((string) ($data['playlistUrl'] ?? ''));
         $enabled = !empty($data['enabled']) ? 1 : 0;
         if (!panel_valid_device_id($deviceId) || $name === '' || strlen($name) > 120 ||
-                strlen($username) > 190 ||
-                !in_array($configurationType, array('xtream', 'm3u'), true)) {
-            panel_json(400, array('error' => 'Confira o identificador, nome e tipo de configuração.'));
+                strlen($username) > 190) {
+            panel_json(400, array('error' => 'Confira o identificador, nome e usuário da conta IPTV.'));
         }
-        if ($configurationType === 'm3u' &&
-                (strlen($playlistUrl) > 2048 || !filter_var($playlistUrl, FILTER_VALIDATE_URL) ||
-                    !preg_match('/^https?:\/\//i', $playlistUrl))) {
-            panel_json(400, array('error' => 'Informe um endereço M3U válido, começando com http:// ou https://.'));
-        }
-        if ($configurationType === 'xtream' && $providerUrl !== '' &&
+        if ($providerUrl !== '' &&
                 (strlen($providerUrl) > 2048 || !filter_var($providerUrl, FILTER_VALIDATE_URL) ||
                 !preg_match('/^https?:\/\//i', $providerUrl))) {
             panel_json(400, array('error' => 'Informe uma URL válida para o servidor IPTV.'));
         }
-        if ($configurationType === 'xtream' && $username === '') {
+        if ($username === '') {
             panel_json(400, array('error' => 'Informe o usuário da conta IPTV.'));
         }
 
@@ -256,14 +239,13 @@ try {
         );
         $statement->execute(array($deviceId));
         $existing = $statement->fetch();
-        if ($configurationType === 'xtream' && $password === '' &&
+        if ($password === '' &&
                 (!$existing || $existing['password_encrypted'] === '')) {
             panel_json(400, array('error' => 'Informe a senha IPTV para cadastrar o aparelho.'));
         }
 
-        $storedUsername = $configurationType === 'm3u' ? '' : $username;
-        $encryptedPassword = $configurationType === 'm3u' ? '' :
-            ($password !== '' ? panel_encrypt_password($password) : (string) $existing['password_encrypted']);
+        $encryptedPassword = $password !== '' ? panel_encrypt_password($password) :
+            (string) $existing['password_encrypted'];
         $pdo = panel_db();
         $pdo->beginTransaction();
         try {
@@ -273,7 +255,7 @@ try {
                 'username = VALUES(username), password_encrypted = VALUES(password_encrypted), ' .
                 'enabled = VALUES(enabled)'
             );
-            $statement->execute(array($deviceId, $name, $storedUsername, $encryptedPassword, $enabled));
+            $statement->execute(array($deviceId, $name, $username, $encryptedPassword, $enabled));
 
             $configuration = $pdo->prepare(
                 'INSERT INTO app_device_configurations (device_id, configuration_type, provider_url, playlist_url_encrypted) ' .
@@ -283,9 +265,9 @@ try {
             );
             $configuration->execute(array(
                 $deviceId,
-                $configurationType,
-                $configurationType === 'xtream' ? $providerUrl : '',
-                $configurationType === 'm3u' ? panel_encrypt_password($playlistUrl) : '',
+                'xtream',
+                $providerUrl,
+                '',
             ));
             $registration = $pdo->prepare('DELETE FROM app_device_registrations WHERE device_id = ?');
             $registration->execute(array($deviceId));
