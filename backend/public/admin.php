@@ -88,7 +88,7 @@ header('Cache-Control: no-store');
                         <div class="public-download-controls">
                             <input id="public-download-url" type="url" readonly>
                             <button id="copy-public-download" class="button secondary" type="button">Copiar link</button>
-                            <a id="open-public-download" class="button primary" href="public-download.php">Baixar APK</a>
+                            <a id="open-public-download" class="button primary" href="d">Baixar APK</a>
                         </div>
                         <p>Qualquer pessoa com este link pode baixar a versão mais recente, sem entrar no painel.</p>
                     </div>

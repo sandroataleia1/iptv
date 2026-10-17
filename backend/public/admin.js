@@ -207,7 +207,7 @@
                 document.getElementById("current-release").textContent =
                     "Versão atual: " + result.release.version + " · Enviada em " + result.release.created_at +
                     (result.release.release_notes ? " · " + result.release.release_notes : "");
-                var downloadUrl = new URL("public-download.php", window.location.href).href;
+                var downloadUrl = new URL("d", window.location.href).href;
                 document.getElementById("public-download").hidden = false;
                 document.getElementById("public-download-url").value = downloadUrl;
                 document.getElementById("open-public-download").href = downloadUrl;
