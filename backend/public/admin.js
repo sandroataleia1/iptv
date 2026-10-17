@@ -133,7 +133,9 @@
                 "<td>" + escapeText(device.username) + "</td>" +
                 "<td><span class=\"status-pill " + status.className + "\">" + status.label + "</span></td>" +
                 "<td><button class=\"table-action\" type=\"button\" data-edit-device=\"" +
-                escapeText(device.device_id) + "\">Configurar</button></td></tr>";
+                escapeText(device.device_id) + "\">Configurar</button> " +
+                "<button class=\"table-action danger\" type=\"button\" data-delete-device=\"" +
+                escapeText(device.device_id) + "\" data-delete-pending=\"false\">Excluir</button></td></tr>";
         }
         return html + "</tbody></table>";
     }
@@ -152,7 +154,9 @@
                 "<td>" + escapeText(device.first_seen || "—") + "</td>" +
                 "<td>" + escapeText(device.last_seen || "—") + "</td>" +
                 "<td><button class=\"table-action\" type=\"button\" data-configure-device=\"" +
-                escapeText(device.device_id) + "\">Configurar app</button></td></tr>";
+                escapeText(device.device_id) + "\">Configurar app</button> " +
+                "<button class=\"table-action danger\" type=\"button\" data-delete-device=\"" +
+                escapeText(device.device_id) + "\" data-delete-pending=\"true\">Excluir</button></td></tr>";
         }
         return html + "</tbody></table>";
     }
@@ -169,6 +173,26 @@
         Array.prototype.forEach.call(container.querySelectorAll("[data-configure-device]"), function (button) {
             button.addEventListener("click", function () {
                 openNewDevice(button.getAttribute("data-configure-device"));
+            });
+        });
+    }
+
+    function bindDeleteButtons(container) {
+        Array.prototype.forEach.call(container.querySelectorAll("[data-delete-device]"), function (button) {
+            button.addEventListener("click", function () {
+                var deviceId = button.getAttribute("data-delete-device");
+                var isPending = button.getAttribute("data-delete-pending") === "true";
+                var message = isPending ?
+                    "Excluir o registro pendente deste app? Ele será removido da lista de novos apps." :
+                    "Excluir este aparelho e apagar sua configuração, credenciais e histórico de renovações?";
+                if (!window.confirm(message)) {
+                    return;
+                }
+                request("admin_device_delete", { deviceId: deviceId }).then(function () {
+                    notify("Registro excluído. Se o app voltar a se conectar, poderá aparecer novamente como pendente.");
+                    loadDevices(document.getElementById("device-search").value);
+                    loadDashboard();
+                }).catch(showError);
             });
         });
     }
@@ -201,8 +225,10 @@
             var pendingContainer = document.getElementById("pending-devices-table");
             pendingContainer.innerHTML = makePendingTable(result.pendingDevices || []);
             bindPendingButtons(pendingContainer);
+            bindDeleteButtons(pendingContainer);
             devicesContainer.innerHTML = makeTable(devicesCache);
             bindEditButtons(devicesContainer);
+            bindDeleteButtons(devicesContainer);
         }).catch(showError);
     }
 

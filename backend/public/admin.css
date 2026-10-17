@@ -76,6 +76,8 @@ tr:last-child td { border-bottom: 0; }
 .status-pill.blocked { background: #482326; color: #ff999c; }
 .table-action { padding: 7px 10px; border: 1px solid #36506a; border-radius: 5px; background: #142438; color: #dcecff; }
 .table-action:hover { border-color: #74bcec; }
+.table-action.danger { border-color: #704047; background: #321e27; color: #ffb2b5; }
+.table-action.danger:hover { border-color: #ff858c; }
 .empty-state { padding: 28px 8px; color: var(--muted); text-align: center; }
 .form-card { max-width: 920px; }
 .form-card > p { margin: 0 0 22px; }

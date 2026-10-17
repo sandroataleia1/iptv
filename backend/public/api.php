@@ -192,6 +192,37 @@ try {
         ));
     }
 
+    if ($action === 'admin_device_delete') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            panel_json(405, array('error' => 'Use uma solicitação POST para excluir o aparelho.'));
+        }
+        $deviceId = strtolower(trim((string) ($data['deviceId'] ?? '')));
+        if (!panel_valid_device_id($deviceId)) {
+            panel_json(400, array('error' => 'Identificador do aparelho inválido.'));
+        }
+
+        $pdo = panel_db();
+        $pdo->beginTransaction();
+        try {
+            $registration = $pdo->prepare('DELETE FROM app_device_registrations WHERE device_id = ?');
+            $registration->execute(array($deviceId));
+            $registrationDeleted = $registration->rowCount();
+
+            $device = $pdo->prepare('DELETE FROM app_devices WHERE device_id = ?');
+            $device->execute(array($deviceId));
+            $deviceDeleted = $device->rowCount();
+            $pdo->commit();
+        } catch (Throwable $error) {
+            $pdo->rollBack();
+            throw $error;
+        }
+
+        if ($registrationDeleted + $deviceDeleted === 0) {
+            panel_json(404, array('error' => 'Registro de aparelho não encontrado.'));
+        }
+        panel_json(200, array('deleted' => true));
+    }
+
     if ($action === 'admin_device') {
         $deviceId = strtolower(trim((string) ($data['deviceId'] ?? '')));
         if (!panel_valid_device_id($deviceId)) {
